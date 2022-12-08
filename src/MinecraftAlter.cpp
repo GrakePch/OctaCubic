@@ -90,10 +90,10 @@ void generateWorldInfo() {
     auto lightPosMat = glm::mat4(1.0f);
     lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
-
+    int perlinSeed = rand();
     for (int x = 0; x < world.size(); ++x) {
         for (int z = 0; z < world[0].size(); ++z) {
-            int surfaceHeight = (MinecraftAlter::perlin((float)x * 4 / worldDim, (float)z * 4 / worldDim) * .5 + .5) *
+            int surfaceHeight = (MinecraftAlter::perlin(perlinSeed, (float)x * 4 / worldDim, (float)z * 4 / worldDim) * .5 + .5) *
                 32 + 10;
             for (int y = 0; y < world[0][0].size(); ++y) {
                 world[x][z][y] = y == 0
@@ -103,7 +103,7 @@ void generateWorldInfo() {
                                      : y < surfaceHeight - 1
                                      ? 3 // Dirt
                                      : y < surfaceHeight
-                                     ? surfaceHeight > 24 // Grass or Sand (if surface height <= 24)
+                                     ? surfaceHeight > 25 // Grass or Sand (if surface height <= 25)
                                            ? 4
                                            : 5
                                      : y > 23 // Air or Water (y <= 23)
@@ -258,6 +258,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     if (key == GLFW_KEY_F2 && action == GLFW_PRESS)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+        deleteBuffers();
+        generateWorldInfo();
+        setupRender();
+        
+    }
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
