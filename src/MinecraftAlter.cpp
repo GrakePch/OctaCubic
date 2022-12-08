@@ -4,10 +4,12 @@
 #include "Cube.h"
 #include "perlin.h"
 
+#define WATER_SURFACE_CUBE_HEIGHT 0.75
+
 static MinecraftAlter::Shader shader;
 
 int worldDim = 64;
-std::array<std::array<std::array<MinecraftAlter::Cube, 64>, 64>, 64> world{};
+std::array<std::array<std::array<int, 64>, 64>, 64> world{};
 
 MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
@@ -89,48 +91,35 @@ void generateWorldInfo() {
     lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
 
-    // Noise generate Terrain: assign position and cube Id
     for (int x = 0; x < world.size(); ++x) {
         for (int z = 0; z < world[0].size(); ++z) {
             int surfaceHeight = (MinecraftAlter::perlin((float)x * 4 / worldDim, (float)z * 4 / worldDim) * .5 + .5) *
                 32 + 10;
             for (int y = 0; y < world[0][0].size(); ++y) {
-                world[x][z][y].position.x = x;
-                world[x][z][y].position.y = y;
-                world[x][z][y].position.z = z;
-                world[x][z][y].cubeId = y == 0
-                                            ? 1 // Bedrock
-                                            : y < surfaceHeight - 4
-                                            ? 2 // Stone
-                                            : y < surfaceHeight - 1
-                                            ? 3 // Dirt
-                                            : y < surfaceHeight
-                                            ? surfaceHeight > 24 // Grass or Sand (if surface height <= 24)
-                                                  ? 4
-                                                  : 5
-                                            : y > 23 // Air or Water (y <= 23)
-                                            ? 0
-                                            : 10;
+                world[x][z][y] = y == 0
+                                     ? 1 // Bedrock
+                                     : y < surfaceHeight - 4
+                                     ? 2 // Stone
+                                     : y < surfaceHeight - 1
+                                     ? 3 // Dirt
+                                     : y < surfaceHeight
+                                     ? surfaceHeight > 24 // Grass or Sand (if surface height <= 24)
+                                           ? 4
+                                           : 5
+                                     : y > 23 // Air or Water (y <= 23)
+                                     ? 0
+                                     : 10;
             }
         }
     }
 
-    // Generate vertices: ignore faces that is not exposed to air
-    int showFaces[6] = {1,1,1,1,1,1};
-    for (int x = 0; x < world.size(); ++x) {
-        for (int z = 0; z < world[0].size(); ++z) {
-            for (int y = 0; y < world[0][0].size(); ++y) {
-                // Check -Y
-                // showFaces[0] = y == 0 || !world[x][z][y-1].cubeId;
-                // Check +Y
-                // Check -Z
-                // Check +Z
-                // Check -X
-                // Check +X
-                world[x][z][y].updateVerticesFacesShown(showFaces);
-            }
-        }
-    }
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(0, glm::vec4{0})); // 0: air
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
 }
 
 // Render
@@ -141,6 +130,7 @@ void setupRender() {
     // Copy the vertices array in a vertex buffer for OpenGL to use
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(unitCube.vertices), unitCube.vertices.data(), GL_STATIC_DRAW);
     // Set the vertex attributes pointers
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
@@ -150,21 +140,6 @@ void setupRender() {
     // glGenBuffers(1, &ebo);
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(idx), idx, GL_STATIC_DRAW);
-
-    // for (int i = 0; i < 36; ++i) {
-    //     std::cout <<
-    //         testCube.cubeVertices[i].position[0] << " " <<
-    //         testCube.cubeVertices[i].position[1] << " " <<
-    //         testCube.cubeVertices[i].position[2] << " " << std::endl;
-    // }
-
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(0, glm::vec4{0})); // 0: air
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
 }
 
 void drawVertices() {
@@ -206,9 +181,7 @@ void drawVertices() {
     glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
     glUniform1f(ambientLoc, ambient);
 
-
     glBindVertexArray(vao);
-    // glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     drawWorldCubes(modelLoc, diffuseClrLoc);
 
@@ -225,15 +198,26 @@ void drawWorldCubes(const int modelShaderLoc, const int diffuseColorShaderLoc) {
     for (int x = 0; x < worldDim; ++x) {
         for (int z = 0; z < worldDim; ++z) {
             for (int y = 0; y < worldDim; ++y) {
-                if (!world[x][z][y].cubeId) continue; // skip air block
-                if (!world[x][z][y].verticesFilled) continue; // skip block that is fully covered from the 6 directions
-                glBufferData(GL_ARRAY_BUFFER, world[x][z][y].verticesFilled * sizeof(Vertex), world[x][z][y].vertices.data(),
-                             GL_STATIC_DRAW);
+                // skip air block
+                if (!world[x][z][y]) continue;
+                // skip block that is fully covered from the 6 directions
+                if (x != 0 && x != world.size() - 1 &&
+                    y != 0 && y != world.size() - 1 &&
+                    z != 0 && z != world.size() - 1 &&
+                    world[x + 1][z][y] && world[x - 1][z][y] &&
+                    world[x][z + 1][y] && world[x][z - 1][y] &&
+                    world[x][z][y + 1] && world[x][z][y - 1])
+                    continue;
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
+                // If it is water surface, shrink height to pre-set value
+                if (y != world.size() - 1 && world[x][z][y] == 10 && world[x][z][y + 1] != 10) {
+                    CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
+                    CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
+                }
                 glUniformMatrix4fv(modelShaderLoc, 1, GL_FALSE, glm::value_ptr(CubePos));
-                glUniform4fv(diffuseColorShaderLoc, 1, glm::value_ptr(cubeIdToColor.at(world[x][z][y].cubeId)));
-                glDrawArrays(GL_TRIANGLES, 0, world[x][z][y].verticesFilled);
+                glUniform4fv(diffuseColorShaderLoc, 1, glm::value_ptr(cubeIdToColor.at(world[x][z][y])));
+                glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
     }
