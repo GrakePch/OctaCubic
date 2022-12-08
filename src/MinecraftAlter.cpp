@@ -5,11 +5,12 @@
 #include "perlin.h"
 
 #define WATER_SURFACE_CUBE_HEIGHT 0.75
+#define SEA_SURFACE_ALTITUDE 23
 
 static MinecraftAlter::Shader shader;
 
-int worldDim = 64;
-std::array<std::array<std::array<int, 64>, 64>, 64> world{};
+int worldDim = 72;
+std::array<std::array<std::array<int, 72>, 72>, 72> world{};
 
 MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
@@ -93,20 +94,29 @@ void generateWorldInfo() {
     int perlinSeed = rand();
     for (int x = 0; x < world.size(); ++x) {
         for (int z = 0; z < world[0].size(); ++z) {
-            int surfaceHeight = (MinecraftAlter::perlin(perlinSeed, (float)x * 4 / worldDim, (float)z * 4 / worldDim) * .5 + .5) *
-                32 + 10;
+            float surfaceHeight =
+                (MinecraftAlter::perlin(perlinSeed, (float)x / 32, (float)z / 32) * .5 + .5) * 32
+                + (MinecraftAlter::perlin(perlinSeed, (float)x / 16, (float)z / 16) * .5) * 12
+                + 10;
+            if (surfaceHeight > SEA_SURFACE_ALTITUDE + 5) {
+                surfaceHeight = SEA_SURFACE_ALTITUDE + 5 + (surfaceHeight - SEA_SURFACE_ALTITUDE - 5) * 2;
+            }
             for (int y = 0; y < world[0][0].size(); ++y) {
                 world[x][z][y] = y == 0
-                                     ? 1 // Bedrock
+                                     ? 1 // Bedrock @ y = 0
                                      : y < surfaceHeight - 4
                                      ? 2 // Stone
                                      : y < surfaceHeight - 1
                                      ? 3 // Dirt
                                      : y < surfaceHeight
-                                     ? surfaceHeight > 25 // Grass or Sand (if surface height <= 25)
-                                           ? 4
+                                     // For the solid surface: below sea+2 -> Sand; below sea+12 -> Grass; above -> Snow
+                                     ? surfaceHeight > SEA_SURFACE_ALTITUDE + 2
+                                           ? surfaceHeight > SEA_SURFACE_ALTITUDE + 12
+                                                 ? 6
+                                                 : 4
                                            : 5
-                                     : y > 23 // Air or Water (y <= 23)
+                                     // Above the solid surface: below sea -> Water; above -> Air
+                                     : y > SEA_SURFACE_ALTITUDE
                                      ? 0
                                      : 10;
             }
@@ -119,6 +129,7 @@ void generateWorldInfo() {
     cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
     cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
     cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
     cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
 }
 
@@ -262,7 +273,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         deleteBuffers();
         generateWorldInfo();
         setupRender();
-        
+
     }
 }
 
