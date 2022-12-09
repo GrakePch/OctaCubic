@@ -1,4 +1,4 @@
-# MInecraftAlter
+# MinecraftAlter
 
 ## Controls
 | Key | Operation |
@@ -11,6 +11,7 @@
 | E | Sun orbit West to East |
 | F1 | Default rendering |
 | F2 | Show wireframes |
-| F5 | Randomize terrain |
+| F3 | Show normal (camera view) |
 | F11 | Toggle full screen |
+| F12 | Randomize terrain |
 | Esc | Exit |

@@ -12,7 +12,7 @@ const std::string Shader::readFile(const char* path) {
     std::string code = "";
     std::ifstream file;
     file.open(path);
-    std::cout << "===start print code===" << std::endl;
+    std::cout << "Loading: " << path << std::endl;
 
     while (std::getline(file, line)) {
         code += line + "\n";
@@ -26,7 +26,6 @@ void Shader::compile(const char* vertexShaderPath, const char* fragmentShaderPat
     // Vertex Shader
     const std::string& vshStr = readFile(vertexShaderPath);
     const char* vsh = vshStr.c_str();
-    std::cout << vsh << std::endl;
     uint32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vsh, nullptr);
     glCompileShader(vertexShader);

@@ -15,5 +15,5 @@ void main() {
     vec3 lightDir = normalize((view * vec4(lightPos, 1.0)).xyz - fFragPos);
     float diff = max(dot(normal_n, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
-    FragColor = vec4((ambient + diffuse) * fColor.rgb, 1.0);
+    FragColor = vec4(normal_n, 1.0);
 }

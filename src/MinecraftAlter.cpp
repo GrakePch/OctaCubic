@@ -8,6 +8,7 @@
 #define SEA_SURFACE_ALTITUDE 23
 
 static MinecraftAlter::Shader shader{};
+static MinecraftAlter::Shader shNormal{};
 
 int worldDim = 72;
 std::array<std::array<std::array<int, 72>, 72>, 72> world{};
@@ -52,6 +53,7 @@ int main() {
 
     shader.compile("src/shaders/vsh.glsl", "src/shaders/fsh.glsl");
     shader.use();
+    shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
 
     // Set Inputs
     glfwSetKeyCallback(window, keyCallback);
@@ -183,6 +185,9 @@ void drawVertices() {
     shader.setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
     shader.setVec3("lightColor", lightColor);
     shader.setFloat("ambient", ambient);
+    shNormal.setMat4("model", model);
+    shNormal.setMat4("view", CamView);
+    shNormal.setMat4("projection", projection);
 
     glBindVertexArray(vao);
 
@@ -218,9 +223,10 @@ void drawWorldCubes() {
                     CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
                 }
-                
+
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
+                shNormal.setMat4("model", CubePos);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
@@ -258,11 +264,19 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_E && action == GLFW_RELEASE) lightPosInputYaw = 0;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
-    if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+    if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    if (key == GLFW_KEY_F2 && action == GLFW_PRESS)
+        shader.use();
+    }
+    if (key == GLFW_KEY_F2 && action == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+        shader.use();
+    }
+    if (key == GLFW_KEY_F3 && action == GLFW_PRESS) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        shNormal.use();
+    }
+    if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         deleteBuffers();
         generateWorldInfo();
         setupRender();
@@ -271,5 +285,5 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) printf("MouseL\n");
+    // if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) printf("MouseL\n");
 }
