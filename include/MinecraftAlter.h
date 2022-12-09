@@ -65,7 +65,7 @@ void generateWorldInfo();
 void setupRender();
 void drawVertices();
 void deleteBuffers();
-void drawWorldCubes(const int modelShaderLoc, const int diffuseColorShaderLoc);
+void drawWorldCubes();
 
 // inputs
 void toggleFullScreen(GLFWwindow* window);

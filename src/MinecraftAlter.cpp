@@ -7,7 +7,7 @@
 #define WATER_SURFACE_CUBE_HEIGHT 0.75
 #define SEA_SURFACE_ALTITUDE 23
 
-static MinecraftAlter::Shader shader;
+static MinecraftAlter::Shader shader{};
 
 int worldDim = 72;
 std::array<std::array<std::array<int, 72>, 72>, 72> world{};
@@ -50,8 +50,8 @@ int main() {
     }
     // Make sure not to call any OpenGL functions until *after* we initialize our function loader
 
-    shader.compile();
-    shader.bind();
+    shader.compile("src/shaders/vsh.glsl", "src/shaders/fsh.glsl");
+    shader.use();
 
     // Set Inputs
     glfwSetKeyCallback(window, keyCallback);
@@ -177,24 +177,16 @@ void drawVertices() {
     lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosValYaw), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Link Variables to Shader Uniforms
-    const int modelLoc = glGetUniformLocation(shader.programId, "model");
-    const int viewLoc = glGetUniformLocation(shader.programId, "view");
-    const int projectionLoc = glGetUniformLocation(shader.programId, "projection");
-    const int lightPosLoc = glGetUniformLocation(shader.programId, "lightPos");
-    const int lightColorLoc = glGetUniformLocation(shader.programId, "lightColor");
-    const int ambientLoc = glGetUniformLocation(shader.programId, "ambient");
-    const int diffuseClrLoc = glGetUniformLocation(shader.programId, "diffuseColor");
-
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(CamView));
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
-    glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
-    glUniform1f(ambientLoc, ambient);
+    shader.setMat4("model", model);
+    shader.setMat4("view", CamView);
+    shader.setMat4("projection", projection);
+    shader.setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
+    shader.setVec3("lightColor", lightColor);
+    shader.setFloat("ambient", ambient);
 
     glBindVertexArray(vao);
 
-    drawWorldCubes(modelLoc, diffuseClrLoc);
+    drawWorldCubes();
 
     glBindVertexArray(0);
 }
@@ -205,7 +197,7 @@ void deleteBuffers() {
     glDeleteVertexArrays(1, &vao);
 }
 
-void drawWorldCubes(const int modelShaderLoc, const int diffuseColorShaderLoc) {
+void drawWorldCubes() {
     for (int x = 0; x < worldDim; ++x) {
         for (int z = 0; z < worldDim; ++z) {
             for (int y = 0; y < worldDim; ++y) {
@@ -226,8 +218,9 @@ void drawWorldCubes(const int modelShaderLoc, const int diffuseColorShaderLoc) {
                     CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
                 }
-                glUniformMatrix4fv(modelShaderLoc, 1, GL_FALSE, glm::value_ptr(CubePos));
-                glUniform4fv(diffuseColorShaderLoc, 1, glm::value_ptr(cubeIdToColor.at(world[x][z][y])));
+                
+                shader.setMat4("model", CubePos);
+                shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
