@@ -48,10 +48,10 @@ static glm::vec3 lightPosition = {1.0f, 3.0f, 2.0f};
 static bool isFullScreen = false;
 static int CamInputYaw = 0;
 static int CamInputPitch = 0;
-static int lightPosInputYaw = 0;
+static int lightPosInputRotZ = 0;
 static float CamValYaw = 45.0f;
 static float CamValPitch = 30.0f;
-static float lightPosValYaw = 0.0f;
+static float lightPosRotZ = 0.0f;
 
 
 static uint32 vao; // Vertex Array Object

@@ -175,8 +175,8 @@ void drawVertices() {
 
     // Light Position Transform
     auto lightPosMtx = glm::mat4(1.0f);
-    if (lightPosInputYaw) lightPosValYaw += (float)lightPosInputYaw;
-    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosValYaw), glm::vec3(0.0f, 0.0f, 1.0f));
+    if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
+    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Link Variables to Shader Uniforms
     shader.setMat4("model", model);
@@ -258,10 +258,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_W && action == GLFW_RELEASE) CamInputPitch = 0;
     if (key == GLFW_KEY_S && action == GLFW_PRESS) CamInputPitch = -1;
     if (key == GLFW_KEY_S && action == GLFW_RELEASE) CamInputPitch = 0;
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS) lightPosInputYaw = +1;
-    if (key == GLFW_KEY_Q && action == GLFW_RELEASE) lightPosInputYaw = 0;
-    if (key == GLFW_KEY_E && action == GLFW_PRESS) lightPosInputYaw = -1;
-    if (key == GLFW_KEY_E && action == GLFW_RELEASE) lightPosInputYaw = 0;
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) lightPosInputRotZ = +1;
+    if (key == GLFW_KEY_Q && action == GLFW_RELEASE) lightPosInputRotZ = 0;
+    if (key == GLFW_KEY_E && action == GLFW_PRESS) lightPosInputRotZ = -1;
+    if (key == GLFW_KEY_E && action == GLFW_RELEASE) lightPosInputRotZ = 0;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
