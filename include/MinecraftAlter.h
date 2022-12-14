@@ -53,6 +53,7 @@ static int CamInputPitch = 0;
 static int lightPosInputRotZ = 0;
 static float CamValYaw = 45.0f;
 static float CamValPitch = 30.0f;
+static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
 
@@ -73,6 +74,7 @@ void drawWorldCubes();
 void toggleFullScreen(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 // interpolate
 inline float interpolate(float f1, float f2, float p) {

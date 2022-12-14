@@ -58,6 +58,7 @@ int main() {
     // Set Inputs
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
     // GL Settings
     glViewport(0, 0, windowWidth, windowHeight);
@@ -68,13 +69,15 @@ int main() {
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     setupRender();
-    
+
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
-    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + worldDim / 2, -.5 + worldDim / 4, -.5 + worldDim / 2)); // Move to world center
+    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + worldDim / 2,
+                                                        -.5 + worldDim / 4,
+                                                        -.5 + worldDim / 2)); // Move to world center
     lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
-    
+
     srand(time(nullptr));
     generateWorldInfo();
 
@@ -168,7 +171,7 @@ void drawVertices() {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -worldDim * 2)); // Cam z distance
+    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -worldDim * CamValDistance)); // Cam z distance
     if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputYaw) CamValYaw += (float)CamInputYaw * 2;
@@ -199,7 +202,7 @@ void drawVertices() {
     glBindVertexArray(vao);
 
     drawWorldCubes();
-    
+
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
     SunPos = glm::scale(SunPos, glm::vec3{(float)worldDim / 4});
@@ -207,7 +210,7 @@ void drawVertices() {
     shader.setVec4("diffuseColor", glm::vec4{1.0});
     shader.setFloat("ambient", 1);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-    
+
     glBindVertexArray(0);
 }
 
@@ -242,7 +245,7 @@ void drawWorldCubes() {
                 shader.setFloat("specularStrength", world[x][z][y] == 10 ? 2 : 0);
                 shader.setFloat("waveStrength", world[x][z][y] == 10 ? 1 : 0);
                 shader.setFloat("time", (float)glfwGetTime());
-                
+
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
@@ -299,10 +302,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         deleteBuffers();
         generateWorldInfo();
         setupRender();
-
     }
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
     // if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) printf("MouseL\n");
+}
+
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
+    if (yOffset > 0 && CamValDistance > 1 || yOffset < 0 && CamValDistance < 3)
+        CamValDistance -= (CamValDistance < 2 ? .05f : 0.1f) * (float)yOffset;
 }
