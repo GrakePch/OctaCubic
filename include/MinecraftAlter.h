@@ -34,15 +34,17 @@ static int windowHeight = 720;
 static int windowPosX = 0;
 static int windowPosY = 0;
 
-static glm::vec3 lightColor = {1.0f, 1.0f, 1.0f};
+static glm::vec3 lightColor = {1.0f, 1.0f, .95f};
 static glm::vec3 skyColor = {.5f, .7f, 1.0f};
+static glm::vec3 skyColor_s = {.6f, .1f, .1f};
+static glm::vec3 skyColor_n = {.1f, .1f, .2f};
 static float ambient = 0.1f;
 
 // View(Camera) Transform
 static glm::mat4 CamView;
 
 // light Position Transform
-static glm::vec3 lightPosition = {1.0f, 3.0f, 2.0f};
+static glm::vec3 lightPosition = {0.0f, 3.0f, 1.0f};
 
 // Transform Inputs
 static bool isFullScreen = false;
@@ -71,5 +73,15 @@ void drawWorldCubes();
 void toggleFullScreen(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
+
+// interpolate
+inline float interpolate(float f1, float f2, float p) {
+    return f1 + p * (f2 - f1);
+}
+inline float remainder(float dividend, int divisor) {
+    int dividendInt = (int)dividend;
+    float decimal = dividend - (int)dividend;
+    return (float)(dividendInt % divisor) + decimal;
+}
 
 #endif

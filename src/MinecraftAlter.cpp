@@ -68,17 +68,28 @@ int main() {
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     setupRender();
+    
+    // Light Position Transform
+    auto lightPosMat = glm::mat4(1.0f);
+    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + worldDim / 2, -.5 + worldDim / 4, -.5 + worldDim / 2)); // Move to world center
+    lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
+    lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
+    
     srand(time(nullptr));
     generateWorldInfo();
 
     while (!glfwWindowShouldClose(window)) {
         // Clear screen
-        glClearColor(skyColor.r, skyColor.g, skyColor.b, 1.0f);
+        // Update Sky color based on the rotation of lightPosition
+        float lightPosRotZ_0_180 = 180.0 - abs((remainder(abs(lightPosRotZ), 360) - 180.0));
+        glClearColor(
+            interpolate(skyColor.r, skyColor_n.r, lightPosRotZ_0_180 / 180.0),
+            interpolate(skyColor.g, skyColor_n.g, lightPosRotZ_0_180 / 180.0),
+            interpolate(skyColor.b, skyColor_n.b, lightPosRotZ_0_180 / 180.0),
+            1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawVertices();
-
-        // std::cout << glfwGetTime() << std::endl;
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -89,10 +100,6 @@ int main() {
 
 // Generate
 void generateWorldInfo() {
-    // Light Position Transform
-    auto lightPosMat = glm::mat4(1.0f);
-    lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
-    lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
     int perlinSeed = rand();
     for (int x = 0; x < world.size(); ++x) {
         for (int z = 0; z < world[0].size(); ++z) {
@@ -162,9 +169,9 @@ void drawVertices() {
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
     CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -worldDim * 2)); // Cam z distance
-    if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch;
-    if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch;
-    if (CamInputYaw) CamValYaw += (float)CamInputYaw;
+    if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch * 2;
+    if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch * 2;
+    if (CamInputYaw) CamValYaw += (float)CamInputYaw * 2;
     CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
     CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
     CamView = glm::translate(CamView, glm::vec3(.5 - worldDim / 2, .5 - worldDim / 4, .5 - worldDim / 2));
@@ -192,7 +199,15 @@ void drawVertices() {
     glBindVertexArray(vao);
 
     drawWorldCubes();
-
+    
+    glm::mat4 SunPos = glm::mat4(1.0f);
+    SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
+    SunPos = glm::scale(SunPos, glm::vec3{(float)worldDim / 4});
+    shader.setMat4("model", SunPos);
+    shader.setVec4("diffuseColor", glm::vec4{1.0});
+    shader.setFloat("ambient", 1);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    
     glBindVertexArray(0);
 }
 
@@ -223,7 +238,11 @@ void drawWorldCubes() {
                     CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
                 }
-
+                // If it is water, add specular lighting
+                shader.setFloat("specularStrength", world[x][z][y] == 10 ? 2 : 0);
+                shader.setFloat("waveStrength", world[x][z][y] == 10 ? 1 : 0);
+                shader.setFloat("time", (float)glfwGetTime());
+                
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
