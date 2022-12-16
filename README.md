@@ -15,3 +15,15 @@
 | F11 | Toggle full screen |
 | F12 | Randomize terrain |
 | Esc | Exit |
+
+## To-do
+- [ ] Shadow Mapping (use depth map)
+- [ ] Sky color changes with sun position
+- [ ] Light intensity changes with sun position
+-	[ ] Performance improvement
+-	[ ] A bigger world (procedurally loaded and unloaded chunks)
+-	[ ] Texturing
+-	[ ] Screen-space reflection (for the water)
+-	[ ] Ambient occlusion
+-	[ ] Anti-aliasing
+-	[ ] A controllable player in the world
