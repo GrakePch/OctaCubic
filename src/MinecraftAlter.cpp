@@ -69,6 +69,7 @@ int main() {
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     setupRender();
+    setupColorMap();
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
@@ -134,15 +135,6 @@ void generateWorldInfo() {
             }
         }
     }
-
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(0, glm::vec4{0})); // 0: air
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
 }
 
 // Render
@@ -255,6 +247,16 @@ void drawWorldCubes() {
     }
 }
 
+void setupColorMap() {
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(0, glm::vec4{0})); // 0: air
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
+}
 
 // Inputs
 void toggleFullScreen(GLFWwindow* window) {

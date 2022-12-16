@@ -69,6 +69,7 @@ void setupRender();
 void drawVertices();
 void deleteBuffers();
 void drawWorldCubes();
+void setupColorMap();
 
 // inputs
 void toggleFullScreen(GLFWwindow* window);
