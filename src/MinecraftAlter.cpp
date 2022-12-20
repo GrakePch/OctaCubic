@@ -16,6 +16,8 @@ std::array<std::array<std::array<int, 72>, 72>, 72> world{};
 MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
 
+GLFWwindow* window;
+unsigned int counterVert;
 
 int main() {
     if (!glfwInit()) {
@@ -31,10 +33,10 @@ int main() {
     windowHeight = 720;
     windowPosX = 0;
     windowPosY = 0;
-    GLFWwindow* window = glfwCreateWindow(
+    window = glfwCreateWindow(
         windowWidth,
         windowHeight,
-        windowTitle,
+        windowTitle.c_str(),
         nullptr, // Monitor; glfwGetPrimaryMonitor(): full screen
         nullptr // Resource sharing
     );
@@ -83,6 +85,8 @@ int main() {
     generateWorldInfo();
 
     while (!glfwWindowShouldClose(window)) {
+        displayFPS();
+
         // Clear screen
         // Update Sky color based on the rotation of lightPosition
         float lightPosRotZ_0_180 = 180.0 - abs((remainder(abs(lightPosRotZ), 360) - 180.0));
@@ -158,6 +162,8 @@ void setupRender() {
 }
 
 void drawVertices() {
+    counterVert = 0;
+    
     // Model Transform
     auto model = glm::mat4(1.0f);
 
@@ -202,6 +208,7 @@ void drawVertices() {
     shader.setVec4("diffuseColor", glm::vec4{1.0});
     shader.setFloat("ambient", 1);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    counterVert += 36;
 
     glBindVertexArray(0);
 }
@@ -242,6 +249,7 @@ void drawWorldCubes() {
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
+                counterVert += 36;
             }
         }
     }
@@ -314,4 +322,26 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
     if (yOffset > 0 && CamValDistance > 1 || yOffset < 0 && CamValDistance < 3)
         CamValDistance -= (CamValDistance < 2 ? .05f : 0.1f) * (float)yOffset;
+}
+
+// FPS displaying
+void displayFPS() {
+    timeCrnt = glfwGetTime();
+    timeDiff = timeCrnt - timePrev;
+    FrameCounter++;
+    if (timeDiff >= 1.0 / 30.0) {
+        // Update title of window
+        std::string FPS = std::to_string(1.0 / timeDiff * FrameCounter);
+        std::string ms = std::to_string(timeDiff / FrameCounter * 1000);
+        std::string newTitle =
+            windowTitle + "   "
+            + FPS.substr(0, FPS.find('.') + 2) + " FPS | "
+            + ms.substr(0, FPS.find('.') + 2) + " MS | "
+        + std::to_string(counterVert) + " Vertices";
+        glfwSetWindowTitle(window, newTitle.c_str());
+
+        // Reset times and counter
+        timePrev = timeCrnt;
+        FrameCounter = 0;
+    }
 }

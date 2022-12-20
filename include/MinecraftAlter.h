@@ -28,7 +28,7 @@ typedef int32_t int32;
 typedef int16_t int16;
 typedef int8_t int8;
 
-static const char* windowTitle = "MinecraftAlter";
+static const std::string windowTitle = "MinecraftAlter";
 static int windowWidth = 1280;
 static int windowHeight = 720;
 static int windowPosX = 0;
@@ -76,6 +76,13 @@ void toggleFullScreen(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+
+// FPS displaying
+static double timePrev = 0.0;
+static double timeCrnt = 0.0;
+static double timeDiff;
+static unsigned int FrameCounter = 0;
+void displayFPS();
 
 // interpolate
 inline float interpolate(float f1, float f2, float p) {

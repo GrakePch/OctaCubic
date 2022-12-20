@@ -141,6 +141,7 @@
     <ClInclude Include="include\Cube.h" />
     <ClInclude Include="include\MinecraftAlter.h" />
     <ClInclude Include="include\perlin.h" />
+    <ClInclude Include="include\Quad.h" />
     <ClInclude Include="include\Shader.h" />
   </ItemGroup>
   <ItemGroup>
