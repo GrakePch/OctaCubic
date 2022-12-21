@@ -17,7 +17,6 @@ MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
 
 GLFWwindow* window;
-unsigned int counterVert;
 
 int main() {
     if (!glfwInit()) {
@@ -67,6 +66,8 @@ int main() {
     glEnable(GL_DEPTH_TEST); // Enable Depth Testing (Z-buffer)
     glEnable(GL_CULL_FACE); // Enable Face culling
     glCullFace(GL_FRONT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
@@ -142,7 +143,7 @@ void generateWorldInfo() {
 
 // Render
 void drawVertices() {
-    counterVert = 0;
+    MinecraftAlter::Quad::vertRenderCount = 0;
 
     // Model Transform
     auto model = glm::mat4(1.0f);
@@ -173,6 +174,7 @@ void drawVertices() {
     shader.setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
     shader.setVec3("lightColor", lightColor);
     shader.setFloat("ambient", ambient);
+    shader.setFloat("time", (float)glfwGetTime());
     shNormal.setMat4("model", model);
     shNormal.setMat4("view", CamView);
     shNormal.setMat4("projection", projection);
@@ -192,15 +194,20 @@ void drawVertices() {
     unitCube.YNeg.renderQuad();
     unitCube.ZPos.renderQuad();
     unitCube.ZNeg.renderQuad();
-    counterVert += 24;
 }
 
 void drawWorldCubes() {
+    // Draw opaque blocks
+    // Remove specular lighting and wave
+    shader.setFloat("specularStrength", 0);
+    shader.setFloat("waveStrength", 0);
     for (int x = 0; x < worldDim; ++x) {
         for (int z = 0; z < worldDim; ++z) {
             for (int y = 0; y < worldDim; ++y) {
                 // skip air block
                 if (!world[x][z][y]) continue;
+                // skip water
+                if (world[x][z][y] == 10) continue;
                 // skip block that is fully covered from the 6 directions
                 if (x != 0 && x != world.size() - 1 &&
                     y != 0 && y != world.size() - 1 &&
@@ -211,56 +218,46 @@ void drawWorldCubes() {
                     continue;
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
-                // If it is water surface, shrink height to pre-set value
-                if (y != world.size() - 1 && world[x][z][y] == 10 && world[x][z][y + 1] != 10) {
-                    CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
-                    CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
-                }
-                // If it is water, add specular lighting
-                shader.setFloat("specularStrength", world[x][z][y] == 10 ? 2 : 0);
-                shader.setFloat("waveStrength", world[x][z][y] == 10 ? 1 : 0);
-                shader.setFloat("time", (float)glfwGetTime());
 
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
-                if (x == world.size() - 1
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x + 1][z][y])
-                    || world[x][z][y] == 10 && world[x + 1][z][y] != 10 // if water near water, not render
-                ) {
-                    unitCube.XPos.renderQuad();
-                    counterVert += 4;
+                if (x == world.size() - 1 || !isBlockOpaque(world[x + 1][z][y])) unitCube.XPos.renderQuad();
+                if (z == world.size() - 1 || !isBlockOpaque(world[x][z + 1][y])) unitCube.ZPos.renderQuad();
+                if (y == world.size() - 1 || !isBlockOpaque(world[x][z][y + 1])) unitCube.YPos.renderQuad();
+                if (x == 0 || !isBlockOpaque(world[x - 1][z][y])) unitCube.XNeg.renderQuad();
+                if (z == 0 || !isBlockOpaque(world[x][z - 1][y])) unitCube.ZNeg.renderQuad();
+                if (y == 0 || !isBlockOpaque(world[x][z][y - 1])) unitCube.YNeg.renderQuad();
+            }
+        }
+    }
+    // Draw water
+    // Add specular lighting and wave
+    shader.setFloat("specularStrength", 2);
+    shader.setFloat("waveStrength", 1);
+    for (int x = 0; x < worldDim; ++x) {
+        for (int z = 0; z < worldDim; ++z) {
+            for (int y = 0; y < worldDim; ++y) {
+                // skip not water
+                if (world[x][z][y] != 10) continue;
+                glm::mat4 CubePos = glm::mat4(1.0f);
+                CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
+                // If it is water surface, shrink height to pre-set value
+                if (y != world.size() - 1 && world[x][z][y + 1] != 10) {
+                    CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
+                    CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
                 }
-                if (z == world.size() - 1
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z + 1][y])
-                    || world[x][z][y] == 10 && world[x][z + 1][y] != 10) {
-                    unitCube.ZPos.renderQuad();
-                    counterVert += 4;
-                }
-                if (y == world.size() - 1
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z][y + 1])
-                    || world[x][z][y] == 10 && world[x][z][y + 1] != 10) {
-                    unitCube.YPos.renderQuad();
-                    counterVert += 4;
-                }
-                if (x == 0
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x - 1][z][y])
-                    || world[x][z][y] == 10 && world[x - 1][z][y] != 10) {
-                    unitCube.XNeg.renderQuad();
-                    counterVert += 4;
-                }
-                if (z == 0
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z - 1][y])
-                    || world[x][z][y] == 10 && world[x][z - 1][y] != 10) {
-                    unitCube.ZNeg.renderQuad();
-                    counterVert += 4;
-                }
-                if (y == 0
-                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z][y - 1])
-                    || world[x][z][y] == 10 && world[x][z][y - 1] != 10) {
-                    unitCube.YNeg.renderQuad();
-                    counterVert += 4;
-                }
+
+                shader.setMat4("model", CubePos);
+                shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
+                shNormal.setMat4("model", CubePos);
+                // if water face faces to water, not render
+                if (x == world.size() - 1 || world[x + 1][z][y] != 10) unitCube.XPos.renderQuad();
+                if (z == world.size() - 1 || world[x][z + 1][y] != 10) unitCube.ZPos.renderQuad();
+                if (y == world.size() - 1 || world[x][z][y + 1] != 10) unitCube.YPos.renderQuad();
+                if (x == 0 || world[x - 1][z][y] != 10) unitCube.XNeg.renderQuad();
+                if (z == 0 || world[x][z - 1][y] != 10) unitCube.ZNeg.renderQuad();
+                if (y == 0 || world[x][z][y - 1] != 10) unitCube.YNeg.renderQuad();
             }
         }
     }
@@ -274,7 +271,7 @@ void setupColorMap() {
     cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
     cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
     cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .8})); // 10: water
 }
 
 bool isBlockOpaque(int id) {
@@ -351,7 +348,7 @@ void displayFPS() {
             windowTitle + "   "
             + FPS.substr(0, FPS.find('.') + 2) + " FPS | "
             + ms.substr(0, FPS.find('.') + 2) + " MS | "
-            + std::to_string(counterVert) + " Vertices";
+            + std::to_string(MinecraftAlter::Quad::vertRenderCount) + " Vertices";
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter

@@ -12,6 +12,7 @@ namespace MinecraftAlter
         float vertices[32] = {};
 
     public:
+        static unsigned int vertRenderCount;
         Quad() = default;
         Quad(unsigned int& quadVAO, unsigned int& quadVBO, face face);
         void vertCopy(float* to, const float* from, int length);

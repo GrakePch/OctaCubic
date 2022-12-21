@@ -45,6 +45,8 @@ namespace MinecraftAlter
         +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
     };
 
+    unsigned int Quad::vertRenderCount = 0;
+
     Quad::Quad(unsigned int& quadVAO, unsigned int& quadVBO, face face): vao(quadVAO), vbo(quadVBO) {
         switch (face) {
         case xPos: vertCopy(vertices, quadXPos, 32);
@@ -95,6 +97,7 @@ namespace MinecraftAlter
         }
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        vertRenderCount += 4;
         glBindVertexArray(0);
     }
 }
