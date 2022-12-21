@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\MinecraftAlter.cpp" />
+    <ClCompile Include="src\Quad.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>

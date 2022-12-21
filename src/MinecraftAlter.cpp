@@ -4,7 +4,7 @@
 #include "Cube.h"
 #include "perlin.h"
 
-#define WATER_SURFACE_CUBE_HEIGHT 0.75
+#define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
 
 static MinecraftAlter::Shader shader{};
@@ -70,7 +70,6 @@ int main() {
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    setupRender();
     setupColorMap();
 
     // Light Position Transform
@@ -142,28 +141,9 @@ void generateWorldInfo() {
 }
 
 // Render
-void setupRender() {
-    // Bind Vertex Array Object
-    glCreateVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    // Copy the vertices array in a vertex buffer for OpenGL to use
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(unitCube.vertices), unitCube.vertices.data(), GL_STATIC_DRAW);
-    // Set the vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-    glEnableVertexAttribArray(1);
-    // Copy the index array in a element buffer for OpenGL to use
-    // glGenBuffers(1, &ebo);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(idx), idx, GL_STATIC_DRAW);
-}
-
 void drawVertices() {
     counterVert = 0;
-    
+
     // Model Transform
     auto model = glm::mat4(1.0f);
 
@@ -197,26 +177,22 @@ void drawVertices() {
     shNormal.setMat4("view", CamView);
     shNormal.setMat4("projection", projection);
 
-    glBindVertexArray(vao);
-
     drawWorldCubes();
 
+    // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
     SunPos = glm::scale(SunPos, glm::vec3{(float)worldDim / 4});
     shader.setMat4("model", SunPos);
     shader.setVec4("diffuseColor", glm::vec4{1.0});
     shader.setFloat("ambient", 1);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    counterVert += 36;
-
-    glBindVertexArray(0);
-}
-
-void deleteBuffers() {
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
-    glDeleteVertexArrays(1, &vao);
+    unitCube.XPos.renderQuad();
+    unitCube.XNeg.renderQuad();
+    unitCube.YPos.renderQuad();
+    unitCube.YNeg.renderQuad();
+    unitCube.ZPos.renderQuad();
+    unitCube.ZNeg.renderQuad();
+    counterVert += 24;
 }
 
 void drawWorldCubes() {
@@ -229,9 +205,9 @@ void drawWorldCubes() {
                 if (x != 0 && x != world.size() - 1 &&
                     y != 0 && y != world.size() - 1 &&
                     z != 0 && z != world.size() - 1 &&
-                    world[x + 1][z][y] && world[x - 1][z][y] &&
-                    world[x][z + 1][y] && world[x][z - 1][y] &&
-                    world[x][z][y + 1] && world[x][z][y - 1])
+                    isBlockOpaque(world[x + 1][z][y]) && isBlockOpaque(world[x - 1][z][y]) &&
+                    isBlockOpaque(world[x][z + 1][y]) && isBlockOpaque(world[x][z - 1][y]) &&
+                    isBlockOpaque(world[x][z][y + 1]) && isBlockOpaque(world[x][z][y - 1]))
                     continue;
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
@@ -248,8 +224,43 @@ void drawWorldCubes() {
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-                counterVert += 36;
+                if (x == world.size() - 1
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x + 1][z][y])
+                    || world[x][z][y] == 10 && world[x + 1][z][y] != 10 // if water near water, not render
+                ) {
+                    unitCube.XPos.renderQuad();
+                    counterVert += 4;
+                }
+                if (z == world.size() - 1
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z + 1][y])
+                    || world[x][z][y] == 10 && world[x][z + 1][y] != 10) {
+                    unitCube.ZPos.renderQuad();
+                    counterVert += 4;
+                }
+                if (y == world.size() - 1
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z][y + 1])
+                    || world[x][z][y] == 10 && world[x][z][y + 1] != 10) {
+                    unitCube.YPos.renderQuad();
+                    counterVert += 4;
+                }
+                if (x == 0
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x - 1][z][y])
+                    || world[x][z][y] == 10 && world[x - 1][z][y] != 10) {
+                    unitCube.XNeg.renderQuad();
+                    counterVert += 4;
+                }
+                if (z == 0
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z - 1][y])
+                    || world[x][z][y] == 10 && world[x][z - 1][y] != 10) {
+                    unitCube.ZNeg.renderQuad();
+                    counterVert += 4;
+                }
+                if (y == 0
+                    || world[x][z][y] != 10 && !isBlockOpaque(world[x][z][y - 1])
+                    || world[x][z][y] == 10 && world[x][z][y - 1] != 10) {
+                    unitCube.YNeg.renderQuad();
+                    counterVert += 4;
+                }
             }
         }
     }
@@ -265,6 +276,11 @@ void setupColorMap() {
     cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
     cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .6})); // 10: water
 }
+
+bool isBlockOpaque(int id) {
+    return id != 0 && id != 10;
+}
+
 
 // Inputs
 void toggleFullScreen(GLFWwindow* window) {
@@ -309,9 +325,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         shNormal.use();
     }
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
-        deleteBuffers();
         generateWorldInfo();
-        setupRender();
     }
 }
 
@@ -337,7 +351,7 @@ void displayFPS() {
             windowTitle + "   "
             + FPS.substr(0, FPS.find('.') + 2) + " FPS | "
             + ms.substr(0, FPS.find('.') + 2) + " MS | "
-        + std::to_string(counterVert) + " Vertices";
+            + std::to_string(counterVert) + " Vertices";
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter
