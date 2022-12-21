@@ -11,6 +11,7 @@
 #include <array>
 #include <map>
 #include <vector>
+#include "Quad.h"
 
 
 struct Vertex {
@@ -57,19 +58,14 @@ static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
 
-static uint32 vao; // Vertex Array Object
-static uint32 vbo; // Vertex Buffer Object
-static uint32 ebo; // Element Buffer Objects
-
 // generate
 void generateWorldInfo();
 
 // render
-void setupRender();
 void drawVertices();
-void deleteBuffers();
 void drawWorldCubes();
 void setupColorMap();
+bool isBlockOpaque(int id);
 
 // inputs
 void toggleFullScreen(GLFWwindow* window);

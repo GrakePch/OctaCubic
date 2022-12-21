@@ -56,5 +56,5 @@ void main() {
     vec3 halfVector = normalize(normalize(lightDir) + viewDir);
     float spec = pow(max(dot(normal_n, halfVector), 0.0), PhongExp);
     vec3 specular = specularStrength * spec * lightColor;
-    FragColor = vec4((ambient + diffuse) * fColor.rgb + specular, 1.0);
+    FragColor = vec4((ambient + diffuse) * fColor.rgb + specular, fColor.a);
 }

@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\MinecraftAlter.cpp" />
+    <ClCompile Include="src\Quad.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +148,10 @@
   <ItemGroup>
     <None Include="src\shaders\fsh.glsl" />
     <None Include="src\shaders\vsh.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="src\shaders\normal_f.glsl" />
+    <Content Include="src\shaders\normal_v.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
