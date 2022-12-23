@@ -89,12 +89,20 @@ int main() {
 
         // Clear screen
         // Update Sky color based on the rotation of lightPosition
-        float lightPosRotZ_0_180 = 180.0 - abs((remainder(abs(lightPosRotZ), 360) - 180.0));
-        glClearColor(
-            interpolate(skyColor.r, skyColor_n.r, lightPosRotZ_0_180 / 180.0),
-            interpolate(skyColor.g, skyColor_n.g, lightPosRotZ_0_180 / 180.0),
-            interpolate(skyColor.b, skyColor_n.b, lightPosRotZ_0_180 / 180.0),
-            1.0f);
+        const float lightPosRotZ_0_180 = remainder(lightPosRotZ + 180.0f, 360);
+        const float timeOfDay = lightPosRotZ_0_180 / 360.0f * 24;
+        for (int i = 0; i < sizeof(skyColorMap) / sizeof(float) / 4 - 1; ++i) {
+            const float lastPivot = skyColorMap[i * 4];
+            const float nextPivot = skyColorMap[(i + 1) * 4];
+            if (timeOfDay > lastPivot && timeOfDay < nextPivot) {
+                const float timePortion = (timeOfDay - lastPivot) / (nextPivot - lastPivot);
+                glClearColor(
+                    interpolate(skyColorMap[i * 4 + 1], skyColorMap[(i + 1) * 4 + 1], timePortion),
+                    interpolate(skyColorMap[i * 4 + 2], skyColorMap[(i + 1) * 4 + 2], timePortion),
+                    interpolate(skyColorMap[i * 4 + 3], skyColorMap[(i + 1) * 4 + 3], timePortion),
+                    1.0f);
+            }
+        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawVertices();

@@ -40,7 +40,7 @@ Used libraries: GLFW, Glad, glm.
 ## To-do
 
 - [ ] Shadow Mapping (use depth map)
-- [ ] Sky color changes with sun position
+- [x] Sky color changes with sun position
 - [ ] Light intensity changes with sun position
 - [ ] Performance improvement
 - [ ] A bigger world (procedurally loaded and unloaded chunks)

@@ -39,6 +39,17 @@ static glm::vec3 lightColor = {1.0f, 1.0f, .95f};
 static glm::vec3 skyColor = {.5f, .7f, 1.0f};
 static glm::vec3 skyColor_s = {.6f, .1f, .1f};
 static glm::vec3 skyColor_n = {.1f, .1f, .2f};
+static float skyColorMap[] = {
+    // time r   g     b
+    0.0f, 0.0f, 0.0f, 0.05f, // mid-night
+    5.0f, 0.0f, 0.0f, 0.05f,
+    6.0f, 0.9f, 0.5f, 0.2f, // sunrise
+    7.0f, 0.5f, 0.7f, 1.0f,
+    17.0f, 0.5f, 0.7f, 1.0f,
+    18.0f, 0.9f, 0.5f, 0.2f, // sunset
+    19.0f, 0.0f, 0.0f, 0.05f,
+    24.0f, 0.0f, 0.0f, 0.05f, // mid-night
+};
 static float ambient = 0.1f;
 
 // View(Camera) Transform
@@ -84,7 +95,9 @@ void displayFPS();
 inline float interpolate(float f1, float f2, float p) {
     return f1 + p * (f2 - f1);
 }
+
 inline float remainder(float dividend, int divisor) {
+    if (dividend < 0) dividend += divisor;
     int dividendInt = (int)dividend;
     float decimal = dividend - (int)dividend;
     return (float)(dividendInt % divisor) + decimal;
