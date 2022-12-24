@@ -12,6 +12,7 @@ static MinecraftAlter::Shader shader{};
 static MinecraftAlter::Shader shNormal{};
 
 MinecraftAlter::World world{};
+MinecraftAlter::Player* player_ptr = nullptr;
 
 MinecraftAlter::Cube unitCube{true};
 std::map<int, glm::vec4> cubeIdToColor;
@@ -78,9 +79,11 @@ int main() {
     MinecraftAlter::World::randomizeSeed();
     world.AltitudeSeaSurface = SEA_SURFACE_ALTITUDE;
     world.generate();
+
     MinecraftAlter::Player player{};
-    world.CurrentPlayer = &player;
-    world.generatePlayerSpawn();
+    player_ptr = &player;
+    player.world_ptr = &world;
+    if (!player.generatePlayerSpawn()) { return -1; }
 
     while (!glfwWindowShouldClose(window)) {
         displayFPS(window, &player);
@@ -314,7 +317,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         world.generate();
-        world.generatePlayerSpawn();
+        if (player_ptr) player_ptr->generatePlayerSpawn();
     }
 }
 
