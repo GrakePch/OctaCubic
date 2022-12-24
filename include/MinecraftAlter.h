@@ -19,15 +19,6 @@ struct Vertex {
     std::array<float, 3> normal;
 };
 
-typedef uint64_t uint64;
-typedef uint32_t uint32;
-typedef uint16_t uint16;
-typedef uint8_t uint8;
-
-typedef int64_t int64;
-typedef int32_t int32;
-typedef int16_t int16;
-typedef int8_t int8;
 
 static const std::string windowTitle = "MinecraftAlter";
 static int windowWidth = 1280;
@@ -36,9 +27,6 @@ static int windowPosX = 0;
 static int windowPosY = 0;
 
 static glm::vec3 lightColor = {1.0f, 1.0f, .95f};
-static glm::vec3 skyColor = {.5f, .7f, 1.0f};
-static glm::vec3 skyColor_s = {.6f, .1f, .1f};
-static glm::vec3 skyColor_n = {.1f, .1f, .2f};
 static float skyColorMap[] = {
     // time r   g     b
     0.0f, 0.0f, 0.0f, 0.05f, // mid-night
