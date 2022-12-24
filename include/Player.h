@@ -44,9 +44,11 @@ namespace MinecraftAlter
         glm::mat4 rotateFacing(glm::mat4 CamView, float deltaX, float deltaY, float sensitivity) {
             pitch = glm::clamp<float>(pitch + deltaY * sensitivity * .5f, -90, 90);
             yaw += deltaX * sensitivity * .5f;
+            if (yaw >= 180) yaw -= 360;
+            if (yaw < -180) yaw += 360;
             CamView = glm::rotate(CamView, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
             CamView = glm::rotate(CamView, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-            CamView = glm::translate(CamView, -location - glm::vec3{0.5f, eyeHeight, 0.5f});
+            CamView = glm::translate(CamView, -location - glm::vec3{0, eyeHeight, 0});
             return CamView;
         }
     };

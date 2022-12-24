@@ -127,8 +127,12 @@ void drawVertices(MinecraftAlter::Player& player) {
     } else {
         // Cam z distance
         CamView = glm::translate(CamView, {0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance});
-        if (CursorControlCam) CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
-        if (CursorControlCam) CamValYaw += CursorDeltaX * CamRotSensitivity;
+        if (CursorControlCam) {
+            CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
+            CamValYaw += CursorDeltaX * CamRotSensitivity;
+            if (CamValYaw >= 180) CamValYaw -= 360;
+            if (CamValYaw < -180) CamValYaw += 360;
+        }
         CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
         CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
         CamView = glm::translate(CamView, -world.worldCenter);
