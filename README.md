@@ -21,7 +21,7 @@ Used libraries: GLFW, Glad, glm.
 
 | Key | Operation |
 | --- | --- |
-| Q / E | Sun orbit East to West / East |
+| Q / E | Sun orbit to West / East |
 | F1 | Default rendering |
 | F2 | Show wireframes |
 | F3 | Show normal (camera view) |
