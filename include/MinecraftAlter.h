@@ -48,8 +48,6 @@ static glm::vec3 lightPosition = {0.0f, 3.0f, 1.0f};
 
 // Transform Inputs
 static bool isFullScreen = false;
-static int CamInputYaw = 0;
-static int CamInputPitch = 0;
 static int lightPosInputRotZ = 0;
 static float CamValYaw = 45.0f;
 static float CamValPitch = 30.0f;
@@ -63,17 +61,24 @@ void setupColorMap();
 bool isBlockOpaque(int id);
 
 // inputs
+static bool CursorControlCam = false;
+static float CursorDeltaX = 0;
+static float CursorDeltaY = 0;
+static float CamRotSensitivity = .2f;
+void setInputs(GLFWwindow* window);
 void toggleFullScreen(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+void toggleFullScreen(GLFWwindow* window);
 
 // FPS displaying
 static double timePrev = 0.0;
 static double timeCrnt = 0.0;
 static double timeDiff;
 static unsigned int FrameCounter = 0;
-void displayFPS();
+void displayFPS(GLFWwindow* window);
 
 // interpolate
 inline float interpolate(float f1, float f2, float p) {

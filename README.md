@@ -19,10 +19,6 @@ Used libraries: GLFW, Glad, glm.
 
 | Key | Operation |
 | --- | --- |
-| A | Camera move to left |
-| D | Camera move to right |
-| W | Camera move up |
-| S | Camera move down |
 | Q | Sun orbit East to West |
 | E | Sun orbit West to East |
 | F1 | Default rendering |
@@ -34,6 +30,7 @@ Used libraries: GLFW, Glad, glm.
 
 | Mouse | Operation |
 | ----- | --- |
+| Hold LMB & Move | Orbit camera around world |
 | Scroll Up | Zoom in |
 | Scroll Down | Zoom out |
 

@@ -14,8 +14,6 @@ MinecraftAlter::World world{};
 MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
 
-GLFWwindow* window;
-
 int main() {
     if (!glfwInit()) {
         printf("Failed to init GLFW\n");
@@ -30,7 +28,7 @@ int main() {
     windowHeight = 720;
     windowPosX = 0;
     windowPosY = 0;
-    window = glfwCreateWindow(
+    GLFWwindow* window = glfwCreateWindow(
         windowWidth,
         windowHeight,
         windowTitle.c_str(),
@@ -55,9 +53,7 @@ int main() {
     shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
 
     // Set Inputs
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetMouseButtonCallback(window, mouseCallback);
-    glfwSetScrollCallback(window, scrollCallback);
+    setInputs(window);
 
     // GL Settings
     glViewport(0, 0, windowWidth, windowHeight);
@@ -82,7 +78,7 @@ int main() {
     world.generate();
 
     while (!glfwWindowShouldClose(window)) {
-        displayFPS();
+        displayFPS(window);
 
         // Clear screen
         // Update Sky color based on the rotation of lightPosition
@@ -120,10 +116,10 @@ void drawVertices() {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance)); // Cam z distance
-    if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch * 2;
-    if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch * 2;
-    if (CamInputYaw) CamValYaw += (float)CamInputYaw * 2;
+    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance));
+    // Cam z distance
+    if (CursorControlCam) CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
+    if (CursorControlCam) CamValYaw += CursorDeltaX * CamRotSensitivity;
     CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
     CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
     CamView = glm::translate(CamView, -world.worldCenter);
@@ -250,29 +246,15 @@ bool isBlockOpaque(int id) {
 
 
 // Inputs
-void toggleFullScreen(GLFWwindow* window) {
-    isFullScreen = !isFullScreen;
-    if (isFullScreen) {
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        glfwGetWindowPos(window, &windowPosX, &windowPosY);
 
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, 0);
-    } else {
-        glfwSetWindowMonitor(window, nullptr, windowPosX, windowPosY, windowWidth, windowHeight, 0);
-    }
+void setInputs(GLFWwindow* window) {
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_A && action == GLFW_PRESS) CamInputYaw = +1;
-    if (key == GLFW_KEY_A && action == GLFW_RELEASE) CamInputYaw = 0;
-    if (key == GLFW_KEY_D && action == GLFW_PRESS) CamInputYaw = -1;
-    if (key == GLFW_KEY_D && action == GLFW_RELEASE) CamInputYaw = 0;
-    if (key == GLFW_KEY_W && action == GLFW_PRESS) CamInputPitch = +1;
-    if (key == GLFW_KEY_W && action == GLFW_RELEASE) CamInputPitch = 0;
-    if (key == GLFW_KEY_S && action == GLFW_PRESS) CamInputPitch = -1;
-    if (key == GLFW_KEY_S && action == GLFW_RELEASE) CamInputPitch = 0;
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) lightPosInputRotZ = +1;
     if (key == GLFW_KEY_Q && action == GLFW_RELEASE) lightPosInputRotZ = 0;
     if (key == GLFW_KEY_E && action == GLFW_PRESS) lightPosInputRotZ = -1;
@@ -297,7 +279,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
-    // if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) printf("MouseL\n");
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        CursorControlCam = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        CursorControlCam = false;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
@@ -305,8 +294,31 @@ void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
         CamValDistance -= (CamValDistance < 2 ? .05f : 0.1f) * (float)yOffset;
 }
 
+void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+    if (!CursorControlCam) return;
+    const float halfWidth = (float)windowWidth / 2;
+    const float halfHeight = (float)windowHeight / 2;
+    CursorDeltaX = (float)xpos - halfWidth;
+    CursorDeltaY = (float)ypos - halfHeight;
+    glfwSetCursorPos(window, (double)halfWidth, (double)halfHeight);
+}
+
+void toggleFullScreen(GLFWwindow* window) {
+    isFullScreen = !isFullScreen;
+    if (isFullScreen) {
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glfwGetWindowPos(window, &windowPosX, &windowPosY);
+
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, 0);
+    } else {
+        glfwSetWindowMonitor(window, nullptr, windowPosX, windowPosY, windowWidth, windowHeight, 0);
+    }
+}
+
 // FPS displaying
-void displayFPS() {
+void displayFPS(GLFWwindow* window) {
     timeCrnt = glfwGetTime();
     timeDiff = timeCrnt - timePrev;
     FrameCounter++;
