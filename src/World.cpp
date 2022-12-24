@@ -11,6 +11,11 @@ World::World() {
     worldDimZ = static_cast<int>(world[0].size());
     worldDimY = static_cast<int>(world[0][0].size());
     worldDimMax = std::max(worldDimX, std::max(worldDimY, worldDimZ));
+    worldCenter = glm::vec3{
+        -.5f + static_cast<float>(worldDimX) / 2,
+        -.5f + static_cast<float>(worldDimY) / 4,
+        -.5f + static_cast<float>(worldDimZ) / 2
+    };
 }
 
 void World::randomizeSeed() {
@@ -20,6 +25,7 @@ void World::randomizeSeed() {
 
 void World::generate() {
     const int perlinSeed = rand();
+    const auto AltitudeSeaSurfaceF = static_cast<float>(AltitudeSeaSurface);
     for (int x = 0; x < worldDimX; ++x) {
         for (int z = 0; z < worldDimZ; ++z) {
             float surfaceHeightF =
@@ -27,30 +33,31 @@ void World::generate() {
                 + (perlin(perlinSeed, static_cast<float>(x) / 16, static_cast<float>(z) / 16) * .5f) * 12
                 + 10;
             // Higher mountains
-            if (surfaceHeightF > AltitudeSeaSurface + 5) {
-                surfaceHeightF = AltitudeSeaSurface + 5 + (surfaceHeightF - AltitudeSeaSurface - 5) * 2;
+            if (surfaceHeightF > AltitudeSeaSurfaceF + 5) {
+                surfaceHeightF = AltitudeSeaSurfaceF + 5 + (surfaceHeightF - AltitudeSeaSurfaceF - 5) * 2;
             }
             // Deeper water
-            if (surfaceHeightF < AltitudeSeaSurface - 3) {
-                surfaceHeightF = AltitudeSeaSurface - 3 - (AltitudeSeaSurface - 3 - surfaceHeightF) * 2;
+            if (surfaceHeightF < AltitudeSeaSurfaceF - 3) {
+                surfaceHeightF = AltitudeSeaSurfaceF - 3 - (AltitudeSeaSurfaceF - 3 - surfaceHeightF) * 2;
             }
             // General Terrain
             for (int y = 0; y < worldDimY; ++y) {
+                const auto yF = static_cast<float>(y);
                 world[x][z][y] = y == 0
                                      ? 1 // Bedrock @ y = 0
-                                     : y < surfaceHeightF - 4
+                                     : yF < surfaceHeightF - 4
                                      ? 2 // Stone
-                                     : y < surfaceHeightF - 1
+                                     : yF < surfaceHeightF - 1
                                      ? 3 // Dirt
-                                     : y < surfaceHeightF
+                                     : yF < surfaceHeightF
                                      // For the solid surface: below sea+2 -> Sand; below sea+12 -> Grass; above -> Snow
-                                     ? surfaceHeightF > AltitudeSeaSurface + 2
-                                           ? surfaceHeightF > AltitudeSeaSurface + 12
+                                     ? surfaceHeightF > AltitudeSeaSurfaceF + 2
+                                           ? surfaceHeightF > AltitudeSeaSurfaceF + 12
                                                  ? 6
                                                  : 4
                                            : 5
                                      // Above the solid surface: below sea -> Water; above -> Air
-                                     : y > AltitudeSeaSurface
+                                     : yF > AltitudeSeaSurfaceF
                                      ? 0
                                      : 10;
             }

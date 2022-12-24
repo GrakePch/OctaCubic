@@ -1,5 +1,4 @@
 #include "MinecraftAlter.h"
-#include <windows.h>
 #include "Shader.h"
 #include "Cube.h"
 #include "World.h"
@@ -74,10 +73,8 @@ int main() {
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
-    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + world.worldDimMax / 2,
-                                                        -.5 + world.worldDimMax / 4,
-                                                        -.5 + world.worldDimMax / 2)); // Move to world center
-    lightPosMat = glm::scale(lightPosMat, glm::vec3(world.worldDimMax));
+    lightPosMat = glm::translate(lightPosMat, world.worldCenter); // Move to world center
+    lightPosMat = glm::scale(lightPosMat, glm::vec3((float)world.worldDimMax));
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
 
     MinecraftAlter::World::randomizeSeed();
@@ -91,9 +88,9 @@ int main() {
         // Update Sky color based on the rotation of lightPosition
         const float lightPosRotZ_0_180 = remainder(lightPosRotZ + 180.0f, 360);
         const float timeOfDay = lightPosRotZ_0_180 / 360.0f * 24;
-        for (int i = 0; i < sizeof(skyColorMap) / sizeof(float) / 4 - 1; ++i) {
-            const float lastPivot = skyColorMap[i * 4];
-            const float nextPivot = skyColorMap[(i + 1) * 4];
+        for (int i = 0; i < (int)(sizeof(skyColorMap) / sizeof(float) / 4 - 1); ++i) {
+            const float lastPivot = skyColorMap[(ptrdiff_t)i * 4];
+            const float nextPivot = skyColorMap[(ptrdiff_t)(i + 1) * 4];
             if (timeOfDay > lastPivot && timeOfDay < nextPivot) {
                 const float timePortion = (timeOfDay - lastPivot) / (nextPivot - lastPivot);
                 glClearColor(
@@ -123,13 +120,13 @@ void drawVertices() {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -world.worldDimMax * CamValDistance)); // Cam z distance
+    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance)); // Cam z distance
     if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputYaw) CamValYaw += (float)CamInputYaw * 2;
     CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
     CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-    CamView = glm::translate(CamView, glm::vec3(.5 - world.worldDimMax / 2, .5 - world.worldDimMax / 4, .5 - world.worldDimMax / 2));
+    CamView = glm::translate(CamView, -world.worldCenter);
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,

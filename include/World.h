@@ -1,17 +1,19 @@
 ﻿#pragma once
 #include <array>
+#include <glm/vec3.hpp>
 
 namespace MinecraftAlter
 {
     class World {
     public:
+        std::array<std::array<std::array<int, 72>, 72>, 72> world{};
         int worldDimX;
         int worldDimZ;
         int worldDimY;
         int worldDimMax;
-        std::array<std::array<std::array<int, 72>, 72>, 72> world{};
+        glm::vec3 worldCenter;
 
-        float AltitudeSeaSurface = 23;
+        int AltitudeSeaSurface = 23;
     
         World();
         static void randomizeSeed();
