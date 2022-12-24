@@ -21,12 +21,29 @@ namespace MinecraftAlter
             YNeg = Quad{VAOs[yNeg], VBOs[yNeg], yNeg};
             ZPos = Quad{VAOs[zPos], VBOs[zPos], zPos};
             ZNeg = Quad{VAOs[zNeg], VBOs[zNeg], zNeg};
-            XPos.scale(0.5);
-            XNeg.scale(0.5);
-            YPos.scale(0.5);
-            YNeg.scale(0.5);
-            ZPos.scale(0.5);
-            ZNeg.scale(0.5);
+        }
+        Cube(bool cornerAtOrigin) {
+            XPos = Quad{VAOs[xPos], VBOs[xPos], xPos};
+            XNeg = Quad{VAOs[xNeg], VBOs[xNeg], xNeg};
+            YPos = Quad{VAOs[yPos], VBOs[yPos], yPos};
+            YNeg = Quad{VAOs[yNeg], VBOs[yNeg], yNeg};
+            ZPos = Quad{VAOs[zPos], VBOs[zPos], zPos};
+            ZNeg = Quad{VAOs[zNeg], VBOs[zNeg], zNeg};
+            if (cornerAtOrigin) {
+                XPos.removeNegPosition();
+                XNeg.removeNegPosition();
+                YPos.removeNegPosition();
+                YNeg.removeNegPosition();
+                ZPos.removeNegPosition();
+                ZNeg.removeNegPosition();
+            } else {
+                XPos.scale(0.5);
+                XNeg.scale(0.5);
+                YPos.scale(0.5);
+                YNeg.scale(0.5);
+                ZPos.scale(0.5);
+                ZNeg.scale(0.5);
+            }
         }
     };
 }

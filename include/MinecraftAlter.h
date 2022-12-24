@@ -59,7 +59,7 @@ void setupColorMap();
 bool isBlockOpaque(int id);
 
 // inputs
-static bool isControllingPlayer = false;
+static bool isFirstPersonView = false;
 static int playerMoveForward = 0;
 static int playerMoveRight = 0;
 static int playerMoveUp = 0;

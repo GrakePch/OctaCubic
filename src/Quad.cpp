@@ -71,11 +71,15 @@ namespace MinecraftAlter
     }
 
     void Quad::scale(float scale) {
-        for (int i = 0; i < 4; ++i) {
-            vertices[i * 8 + 0] *= scale;
-            vertices[i * 8 + 1] *= scale;
-            vertices[i * 8 + 2] *= scale;
-        }
+        for (int i = 0; i < 4; ++i)
+            for (int idx = 0; idx < 3; ++idx)
+                vertices[i * 8 + idx] *= scale;
+    }
+
+    void Quad::removeNegPosition() {
+        for (int i = 0; i < 4; ++i)
+            for (int idx = 0; idx < 3; ++idx)
+                if (vertices[i * 8 + idx] < 0) vertices[i * 8 + idx] = 0;
     }
 
     void Quad::renderQuad() {

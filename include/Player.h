@@ -17,7 +17,7 @@ namespace MinecraftAlter
 
         Player() = default;
 
-        void move(float interval, int inputForward, int inputRight, int inputUp) {
+        void updateLocation(float interval, int inputForward, int inputRight, int inputUp) {
             const glm::vec2 moveXZ = glm::normalize(glm::vec2(inputForward, inputRight));
             if (inputForward) {
                 const float moveDist = speedWalk * interval * moveXZ.x;
@@ -46,7 +46,7 @@ namespace MinecraftAlter
             yaw += deltaX * sensitivity * .5f;
             CamView = glm::rotate(CamView, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
             CamView = glm::rotate(CamView, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-            CamView = glm::translate(CamView, -location - glm::vec3{0.0f, eyeHeight + .5f, 0.0f});
+            CamView = glm::translate(CamView, -location - glm::vec3{0.5f, eyeHeight, 0.5f});
             return CamView;
         }
     };

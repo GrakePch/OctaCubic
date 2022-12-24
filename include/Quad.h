@@ -17,6 +17,7 @@ namespace MinecraftAlter
         Quad(unsigned int& quadVAO, unsigned int& quadVBO, face face);
         void vertCopy(float* to, const float* from, int length);
         void scale(float scale);
+        void removeNegPosition();
         void renderQuad();
     };
 }

@@ -12,9 +12,9 @@ World::World() {
     worldDimY = static_cast<int>(world[0][0].size());
     worldDimMax = std::max(worldDimX, std::max(worldDimY, worldDimZ));
     worldCenter = glm::vec3{
-        -.5f + static_cast<float>(worldDimX) / 2,
-        -.5f + static_cast<float>(worldDimY) / 4,
-        -.5f + static_cast<float>(worldDimZ) / 2
+        static_cast<float>(worldDimX) / 2,
+        static_cast<float>(worldDimY) / 4,
+        static_cast<float>(worldDimZ) / 2
     };
 }
 
@@ -75,5 +75,5 @@ void World::generatePlayerSpawn() const {
             [static_cast<int>(CurrentPlayer->location.z)]
             [surfaceY])
             break;
-    CurrentPlayer->location.y = static_cast<float>(surfaceY) - 1;
+    CurrentPlayer->location.y = static_cast<float>(surfaceY);
 }

@@ -13,7 +13,7 @@ static MinecraftAlter::Shader shNormal{};
 
 MinecraftAlter::World world{};
 
-MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
+MinecraftAlter::Cube unitCube{true};
 std::map<int, glm::vec4> cubeIdToColor;
 
 int main() {
@@ -121,8 +121,8 @@ void drawVertices(MinecraftAlter::Player& player) {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    if (isControllingPlayer) {
-        player.move((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
+    if (isFirstPersonView) {
+        player.updateLocation((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
         CamView = player.rotateFacing(CamView, CursorDeltaX, CursorDeltaY, CamRotSensitivity);
     } else {
         // Cam z distance
@@ -265,7 +265,7 @@ void setInputs(GLFWwindow* window) {
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (isControllingPlayer) {
+    if (isFirstPersonView) {
         if (key == GLFW_KEY_W && action == GLFW_PRESS) playerMoveForward = +1;
         if (key == GLFW_KEY_W && action == GLFW_RELEASE) playerMoveForward = 0;
         if (key == GLFW_KEY_S && action == GLFW_PRESS) playerMoveForward = -1;
@@ -297,8 +297,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         shNormal.use();
     }
     if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
-        isControllingPlayer = !isControllingPlayer;
-        if (isControllingPlayer) {
+        isFirstPersonView = !isFirstPersonView;
+        if (isFirstPersonView) {
             CursorControlCam = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             glfwSetCursorPos(window, (double)windowWidth / 2, (double)windowHeight / 2);
@@ -316,14 +316,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        if (!isControllingPlayer) {
+        if (!isFirstPersonView) {
             CursorControlCam = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             glfwSetCursorPos(window, (double)windowWidth / 2, (double)windowHeight / 2);
         }
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        if (!isControllingPlayer) {
+        if (!isFirstPersonView) {
             CursorControlCam = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
