@@ -2,7 +2,7 @@
 #include <windows.h>
 #include "Shader.h"
 #include "Cube.h"
-#include "perlin.h"
+#include "World.h"
 
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
@@ -10,8 +10,7 @@
 static MinecraftAlter::Shader shader{};
 static MinecraftAlter::Shader shNormal{};
 
-int worldDim = 72;
-std::array<std::array<std::array<int, 72>, 72>, 72> world{};
+MinecraftAlter::World world{};
 
 MinecraftAlter::Cube unitCube = MinecraftAlter::Cube();
 std::map<int, glm::vec4> cubeIdToColor;
@@ -75,14 +74,15 @@ int main() {
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
-    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + worldDim / 2,
-                                                        -.5 + worldDim / 4,
-                                                        -.5 + worldDim / 2)); // Move to world center
-    lightPosMat = glm::scale(lightPosMat, glm::vec3(worldDim));
+    lightPosMat = glm::translate(lightPosMat, glm::vec3(-.5 + world.worldDimMax / 2,
+                                                        -.5 + world.worldDimMax / 4,
+                                                        -.5 + world.worldDimMax / 2)); // Move to world center
+    lightPosMat = glm::scale(lightPosMat, glm::vec3(world.worldDimMax));
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
 
-    srand(time(nullptr));
-    generateWorldInfo();
+    MinecraftAlter::World::randomizeSeed();
+    world.AltitudeSeaSurface = SEA_SURFACE_ALTITUDE;
+    world.generate();
 
     while (!glfwWindowShouldClose(window)) {
         displayFPS();
@@ -114,41 +114,6 @@ int main() {
     glfwTerminate();
 }
 
-// Generate
-void generateWorldInfo() {
-    int perlinSeed = rand();
-    for (int x = 0; x < world.size(); ++x) {
-        for (int z = 0; z < world[0].size(); ++z) {
-            float surfaceHeight =
-                (MinecraftAlter::perlin(perlinSeed, (float)x / 32, (float)z / 32) * .5 + .5) * 32
-                + (MinecraftAlter::perlin(perlinSeed, (float)x / 16, (float)z / 16) * .5) * 12
-                + 10;
-            if (surfaceHeight > SEA_SURFACE_ALTITUDE + 5) {
-                surfaceHeight = SEA_SURFACE_ALTITUDE + 5 + (surfaceHeight - SEA_SURFACE_ALTITUDE - 5) * 2;
-            }
-            for (int y = 0; y < world[0][0].size(); ++y) {
-                world[x][z][y] = y == 0
-                                     ? 1 // Bedrock @ y = 0
-                                     : y < surfaceHeight - 4
-                                     ? 2 // Stone
-                                     : y < surfaceHeight - 1
-                                     ? 3 // Dirt
-                                     : y < surfaceHeight
-                                     // For the solid surface: below sea+2 -> Sand; below sea+12 -> Grass; above -> Snow
-                                     ? surfaceHeight > SEA_SURFACE_ALTITUDE + 2
-                                           ? surfaceHeight > SEA_SURFACE_ALTITUDE + 12
-                                                 ? 6
-                                                 : 4
-                                           : 5
-                                     // Above the solid surface: below sea -> Water; above -> Air
-                                     : y > SEA_SURFACE_ALTITUDE
-                                     ? 0
-                                     : 10;
-            }
-        }
-    }
-}
-
 // Render
 void drawVertices() {
     MinecraftAlter::Quad::vertRenderCount = 0;
@@ -158,13 +123,13 @@ void drawVertices() {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -worldDim * CamValDistance)); // Cam z distance
+    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -world.worldDimMax * CamValDistance)); // Cam z distance
     if (CamInputPitch > 0 && CamValPitch < +90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputPitch < 0 && CamValPitch > -90) CamValPitch += (float)CamInputPitch * 2;
     if (CamInputYaw) CamValYaw += (float)CamInputYaw * 2;
     CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
     CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-    CamView = glm::translate(CamView, glm::vec3(.5 - worldDim / 2, .5 - worldDim / 4, .5 - worldDim / 2));
+    CamView = glm::translate(CamView, glm::vec3(.5 - world.worldDimMax / 2, .5 - world.worldDimMax / 4, .5 - world.worldDimMax / 2));
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,
@@ -192,7 +157,7 @@ void drawVertices() {
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
-    SunPos = glm::scale(SunPos, glm::vec3{(float)worldDim / 4});
+    SunPos = glm::scale(SunPos, glm::vec3{(float)world.worldDimMax / 4});
     shader.setMat4("model", SunPos);
     shader.setVec4("diffuseColor", glm::vec4{1.0});
     shader.setFloat("ambient", 1);
@@ -209,33 +174,33 @@ void drawWorldCubes() {
     // Remove specular lighting and wave
     shader.setFloat("specularStrength", 0);
     shader.setFloat("waveStrength", 0);
-    for (int x = 0; x < worldDim; ++x) {
-        for (int z = 0; z < worldDim; ++z) {
-            for (int y = 0; y < worldDim; ++y) {
+    for (int x = 0; x < world.worldDimMax; ++x) {
+        for (int z = 0; z < world.worldDimMax; ++z) {
+            for (int y = 0; y < world.worldDimMax; ++y) {
                 // skip air block
-                if (!world[x][z][y]) continue;
+                if (!world.world[x][z][y]) continue;
                 // skip water
-                if (world[x][z][y] == 10) continue;
+                if (world.world[x][z][y] == 10) continue;
                 // skip block that is fully covered from the 6 directions
-                if (x != 0 && x != world.size() - 1 &&
-                    y != 0 && y != world.size() - 1 &&
-                    z != 0 && z != world.size() - 1 &&
-                    isBlockOpaque(world[x + 1][z][y]) && isBlockOpaque(world[x - 1][z][y]) &&
-                    isBlockOpaque(world[x][z + 1][y]) && isBlockOpaque(world[x][z - 1][y]) &&
-                    isBlockOpaque(world[x][z][y + 1]) && isBlockOpaque(world[x][z][y - 1]))
+                if (x != 0 && x != world.worldDimX - 1 &&
+                    y != 0 && y != world.worldDimY - 1 &&
+                    z != 0 && z != world.worldDimZ - 1 &&
+                    isBlockOpaque(world.world[x + 1][z][y]) && isBlockOpaque(world.world[x - 1][z][y]) &&
+                    isBlockOpaque(world.world[x][z + 1][y]) && isBlockOpaque(world.world[x][z - 1][y]) &&
+                    isBlockOpaque(world.world[x][z][y + 1]) && isBlockOpaque(world.world[x][z][y - 1]))
                     continue;
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
 
                 shader.setMat4("model", CubePos);
-                shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
+                shader.setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
-                if (x == world.size() - 1 || !isBlockOpaque(world[x + 1][z][y])) unitCube.XPos.renderQuad();
-                if (z == world.size() - 1 || !isBlockOpaque(world[x][z + 1][y])) unitCube.ZPos.renderQuad();
-                if (y == world.size() - 1 || !isBlockOpaque(world[x][z][y + 1])) unitCube.YPos.renderQuad();
-                if (x == 0 || !isBlockOpaque(world[x - 1][z][y])) unitCube.XNeg.renderQuad();
-                if (z == 0 || !isBlockOpaque(world[x][z - 1][y])) unitCube.ZNeg.renderQuad();
-                if (y == 0 || !isBlockOpaque(world[x][z][y - 1])) unitCube.YNeg.renderQuad();
+                if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y])) unitCube.XPos.renderQuad();
+                if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y])) unitCube.ZPos.renderQuad();
+                if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1])) unitCube.YPos.renderQuad();
+                if (x == 0 || !isBlockOpaque(world.world[x - 1][z][y])) unitCube.XNeg.renderQuad();
+                if (z == 0 || !isBlockOpaque(world.world[x][z - 1][y])) unitCube.ZNeg.renderQuad();
+                if (y == 0 || !isBlockOpaque(world.world[x][z][y - 1])) unitCube.YNeg.renderQuad();
             }
         }
     }
@@ -243,29 +208,29 @@ void drawWorldCubes() {
     // Add specular lighting and wave
     shader.setFloat("specularStrength", 2);
     shader.setFloat("waveStrength", 1);
-    for (int x = 0; x < worldDim; ++x) {
-        for (int z = 0; z < worldDim; ++z) {
-            for (int y = 0; y < worldDim; ++y) {
+    for (int x = 0; x < world.worldDimMax; ++x) {
+        for (int z = 0; z < world.worldDimMax; ++z) {
+            for (int y = 0; y < world.worldDimMax; ++y) {
                 // skip not water
-                if (world[x][z][y] != 10) continue;
+                if (world.world[x][z][y] != 10) continue;
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
                 // If it is water surface, shrink height to pre-set value
-                if (y != world.size() - 1 && world[x][z][y + 1] != 10) {
+                if (y != world.worldDimY - 1 && world.world[x][z][y + 1] != 10) {
                     CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
                 }
 
                 shader.setMat4("model", CubePos);
-                shader.setVec4("diffuseColor", cubeIdToColor.at(world[x][z][y]));
+                shader.setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
                 shNormal.setMat4("model", CubePos);
                 // if water face faces to water, not render
-                if (x == world.size() - 1 || world[x + 1][z][y] != 10) unitCube.XPos.renderQuad();
-                if (z == world.size() - 1 || world[x][z + 1][y] != 10) unitCube.ZPos.renderQuad();
-                if (y == world.size() - 1 || world[x][z][y + 1] != 10) unitCube.YPos.renderQuad();
-                if (x == 0 || world[x - 1][z][y] != 10) unitCube.XNeg.renderQuad();
-                if (z == 0 || world[x][z - 1][y] != 10) unitCube.ZNeg.renderQuad();
-                if (y == 0 || world[x][z][y - 1] != 10) unitCube.YNeg.renderQuad();
+                if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10) unitCube.XPos.renderQuad();
+                if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10) unitCube.ZPos.renderQuad();
+                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10) unitCube.YPos.renderQuad();
+                if (x == 0 || world.world[x - 1][z][y] != 10) unitCube.XNeg.renderQuad();
+                if (z == 0 || world.world[x][z - 1][y] != 10) unitCube.ZNeg.renderQuad();
+                if (y == 0 || world.world[x][z][y - 1] != 10) unitCube.YNeg.renderQuad();
             }
         }
     }
@@ -330,7 +295,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         shNormal.use();
     }
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
-        generateWorldInfo();
+        world.generate();
     }
 }
 

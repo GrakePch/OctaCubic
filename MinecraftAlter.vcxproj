@@ -137,6 +137,7 @@
     <ClCompile Include="src\MinecraftAlter.cpp" />
     <ClCompile Include="src\Quad.cpp" />
     <ClCompile Include="src\Shader.cpp" />
+    <ClCompile Include="src\World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Cube.h" />
@@ -144,6 +145,7 @@
     <ClInclude Include="include\perlin.h" />
     <ClInclude Include="include\Quad.h" />
     <ClInclude Include="include\Shader.h" />
+    <ClInclude Include="include\World.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\fsh.glsl" />

@@ -56,10 +56,6 @@ static float CamValPitch = 30.0f;
 static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
-
-// generate
-void generateWorldInfo();
-
 // render
 void drawVertices();
 void drawWorldCubes();
