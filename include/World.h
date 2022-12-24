@@ -2,6 +2,8 @@
 #include <array>
 #include <glm/vec3.hpp>
 
+#include "Player.h"
+
 namespace MinecraftAlter
 {
     class World {
@@ -14,9 +16,12 @@ namespace MinecraftAlter
         glm::vec3 worldCenter;
 
         int AltitudeSeaSurface = 23;
+        Player* CurrentPlayer = nullptr;
     
         World();
         static void randomizeSeed();
         void generate();
+        
+        void generatePlayerSpawn() const;
     };
 }

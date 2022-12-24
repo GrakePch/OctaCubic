@@ -64,3 +64,16 @@ void World::generate() {
         }
     }
 }
+
+void World::generatePlayerSpawn() const {
+    CurrentPlayer->location.x = floor(worldCenter.x);
+    CurrentPlayer->location.z = floor(worldCenter.z);
+    int surfaceY;
+    for (surfaceY = 0; surfaceY < worldDimY; ++surfaceY)
+        if (!world
+            [static_cast<int>(CurrentPlayer->location.x)]
+            [static_cast<int>(CurrentPlayer->location.z)]
+            [surfaceY])
+            break;
+    CurrentPlayer->location.y = static_cast<float>(surfaceY) - 1;
+}

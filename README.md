@@ -17,22 +17,37 @@ Used libraries: GLFW, Glad, glm.
 
 ## Controls
 
+### Universal
+
 | Key | Operation |
 | --- | --- |
-| Q | Sun orbit East to West |
-| E | Sun orbit West to East |
+| Q / E | Sun orbit East to West / East |
 | F1 | Default rendering |
 | F2 | Show wireframes |
 | F3 | Show normal (camera view) |
+| F5 | Toggle Observer / First Person view |
 | F11 | Toggle full screen |
 | F12 | Randomize terrain |
 | Esc | Exit |
 
+### Observer View
+
 | Mouse | Operation |
 | ----- | --- |
 | Hold LMB & Move | Orbit camera around world |
-| Scroll Up | Zoom in |
-| Scroll Down | Zoom out |
+| Scroll Up / Down | Zoom in / out |
+
+### First Person View
+
+| Mouse | Operation |
+| ----- | --- |
+| Move | Look around |
+
+| Key | Operation |
+| --- | --- |
+| W / S | Player move forward / backward |
+| A / D | Player move to left / right |
+| Space / LCtrl | Player move up / down |
 
 ## To-do
 

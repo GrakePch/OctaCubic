@@ -3,6 +3,8 @@
 #include "Cube.h"
 #include "World.h"
 
+#include <map>
+
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
 
@@ -76,9 +78,12 @@ int main() {
     MinecraftAlter::World::randomizeSeed();
     world.AltitudeSeaSurface = SEA_SURFACE_ALTITUDE;
     world.generate();
+    MinecraftAlter::Player player{};
+    world.CurrentPlayer = &player;
+    world.generatePlayerSpawn();
 
     while (!glfwWindowShouldClose(window)) {
-        displayFPS(window);
+        displayFPS(window, &player);
 
         // Clear screen
         // Update Sky color based on the rotation of lightPosition
@@ -98,7 +103,7 @@ int main() {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        drawVertices();
+        drawVertices(player);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -108,7 +113,7 @@ int main() {
 }
 
 // Render
-void drawVertices() {
+void drawVertices(MinecraftAlter::Player& player) {
     MinecraftAlter::Quad::vertRenderCount = 0;
 
     // Model Transform
@@ -116,13 +121,18 @@ void drawVertices() {
 
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
-    CamView = glm::translate(CamView, glm::vec3(0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance));
-    // Cam z distance
-    if (CursorControlCam) CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
-    if (CursorControlCam) CamValYaw += CursorDeltaX * CamRotSensitivity;
-    CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
-    CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-    CamView = glm::translate(CamView, -world.worldCenter);
+    if (isControllingPlayer) {
+        player.move((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
+        CamView = player.rotateFacing(CamView, CursorDeltaX, CursorDeltaY, CamRotSensitivity);
+    } else {
+        // Cam z distance
+        CamView = glm::translate(CamView, {0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance});
+        if (CursorControlCam) CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
+        if (CursorControlCam) CamValYaw += CursorDeltaX * CamRotSensitivity;
+        CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
+        CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+        CamView = glm::translate(CamView, -world.worldCenter);
+    }
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,
@@ -255,12 +265,25 @@ void setInputs(GLFWwindow* window) {
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (isControllingPlayer) {
+        if (key == GLFW_KEY_W && action == GLFW_PRESS) playerMoveForward = +1;
+        if (key == GLFW_KEY_W && action == GLFW_RELEASE) playerMoveForward = 0;
+        if (key == GLFW_KEY_S && action == GLFW_PRESS) playerMoveForward = -1;
+        if (key == GLFW_KEY_S && action == GLFW_RELEASE) playerMoveForward = 0;
+        if (key == GLFW_KEY_D && action == GLFW_PRESS) playerMoveRight = +1;
+        if (key == GLFW_KEY_D && action == GLFW_RELEASE) playerMoveRight = 0;
+        if (key == GLFW_KEY_A && action == GLFW_PRESS) playerMoveRight = -1;
+        if (key == GLFW_KEY_A && action == GLFW_RELEASE) playerMoveRight = 0;
+        if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) playerMoveUp = +1;
+        if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) playerMoveUp = 0;
+        if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) playerMoveUp = -1;
+        if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) playerMoveUp = 0;
+    }
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) lightPosInputRotZ = +1;
     if (key == GLFW_KEY_Q && action == GLFW_RELEASE) lightPosInputRotZ = 0;
     if (key == GLFW_KEY_E && action == GLFW_PRESS) lightPosInputRotZ = -1;
     if (key == GLFW_KEY_E && action == GLFW_RELEASE) lightPosInputRotZ = 0;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
-    if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shader.use();
@@ -273,19 +296,37 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shNormal.use();
     }
+    if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+        isControllingPlayer = !isControllingPlayer;
+        if (isControllingPlayer) {
+            CursorControlCam = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            glfwSetCursorPos(window, (double)windowWidth / 2, (double)windowHeight / 2);
+        } else {
+            CursorControlCam = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
+    if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         world.generate();
+        world.generatePlayerSpawn();
     }
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        CursorControlCam = true;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        if (!isControllingPlayer) {
+            CursorControlCam = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            glfwSetCursorPos(window, (double)windowWidth / 2, (double)windowHeight / 2);
+        }
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        CursorControlCam = false;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        if (!isControllingPlayer) {
+            CursorControlCam = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
     }
 }
 
@@ -294,12 +335,12 @@ void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
         CamValDistance -= (CamValDistance < 2 ? .05f : 0.1f) * (float)yOffset;
 }
 
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+void cursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
     if (!CursorControlCam) return;
     const float halfWidth = (float)windowWidth / 2;
     const float halfHeight = (float)windowHeight / 2;
-    CursorDeltaX = (float)xpos - halfWidth;
-    CursorDeltaY = (float)ypos - halfHeight;
+    CursorDeltaX = (float)xPos - halfWidth;
+    CursorDeltaY = (float)yPos - halfHeight;
     glfwSetCursorPos(window, (double)halfWidth, (double)halfHeight);
 }
 
@@ -318,23 +359,33 @@ void toggleFullScreen(GLFWwindow* window) {
 }
 
 // FPS displaying
-void displayFPS(GLFWwindow* window) {
-    timeCrnt = glfwGetTime();
-    timeDiff = timeCrnt - timePrev;
+void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr) {
+    timeCurr = glfwGetTime();
+    timeDiff = timeCurr - timePrev;
     FrameCounter++;
     if (timeDiff >= 1.0 / 30.0) {
+        // Update FPS & Frame interval
+        FPS = 1.0 / timeDiff * FrameCounter;
+        Second = timeDiff / FrameCounter;
         // Update title of window
-        std::string FPS = std::to_string(1.0 / timeDiff * FrameCounter);
-        std::string ms = std::to_string(timeDiff / FrameCounter * 1000);
-        std::string newTitle =
+        const std::string newTitle =
             windowTitle + "   "
-            + FPS.substr(0, FPS.find('.') + 2) + " FPS | "
-            + ms.substr(0, FPS.find('.') + 2) + " MS | "
-            + std::to_string(MinecraftAlter::Quad::vertRenderCount) + " Vertices";
+            + dToDecimalStr(FPS) + " FPS | "
+            + dToDecimalStr(Second * 1000) + " MS | "
+            + std::to_string(MinecraftAlter::Quad::vertRenderCount) + " Vertices | "
+            + "Player @ "
+            + dToDecimalStr((double)player_ptr->location.x) + " "
+            + dToDecimalStr((double)player_ptr->location.y) + " "
+            + dToDecimalStr((double)player_ptr->location.z);
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter
-        timePrev = timeCrnt;
+        timePrev = timeCurr;
         FrameCounter = 0;
     }
+}
+
+std::string dToDecimalStr(double d) {
+    const std::string tempStr = std::to_string(d);
+    return tempStr.substr(0, tempStr.find('.') + 2);
 }

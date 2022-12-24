@@ -2,16 +2,14 @@
 #define MINECRAFTALTER_CORE_H
 
 #include <iostream>
-#include <glad/glad.h>
+#include <glad/glad.h> // Must before GLFW
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <stdint.h>
 #include <array>
-#include <map>
-#include <vector>
-#include "Quad.h"
+
+#include "Player.h"
 
 
 struct Vertex {
@@ -55,30 +53,36 @@ static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
 // render
-void drawVertices();
+void drawVertices(MinecraftAlter::Player& player);
 void drawWorldCubes();
 void setupColorMap();
 bool isBlockOpaque(int id);
 
 // inputs
+static bool isControllingPlayer = false;
+static int playerMoveForward = 0;
+static int playerMoveRight = 0;
+static int playerMoveUp = 0;
 static bool CursorControlCam = false;
 static float CursorDeltaX = 0;
 static float CursorDeltaY = 0;
 static float CamRotSensitivity = .2f;
 void setInputs(GLFWwindow* window);
-void toggleFullScreen(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
+void cursorPosCallback(GLFWwindow* window, double xPos, double yPos);
 void toggleFullScreen(GLFWwindow* window);
 
 // FPS displaying
 static double timePrev = 0.0;
-static double timeCrnt = 0.0;
+static double timeCurr = 0.0;
 static double timeDiff;
+static double FPS = 0.0;
+static double Second = 0.0;
 static unsigned int FrameCounter = 0;
-void displayFPS(GLFWwindow* window);
+void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr);
+std::string dToDecimalStr(double d);
 
 // interpolate
 inline float interpolate(float f1, float f2, float p) {
@@ -86,10 +90,10 @@ inline float interpolate(float f1, float f2, float p) {
 }
 
 inline float remainder(float dividend, int divisor) {
-    if (dividend < 0) dividend += divisor;
-    int dividendInt = (int)dividend;
-    float decimal = dividend - (int)dividend;
-    return (float)(dividendInt % divisor) + decimal;
+    if (dividend < 0) dividend += static_cast<float>(divisor);
+    const int dividendInt = static_cast<int>(dividend);
+    const float decimal = dividend - round(dividend);
+    return static_cast<float>(dividendInt % divisor) + decimal;
 }
 
 #endif
