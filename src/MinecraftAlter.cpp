@@ -69,6 +69,7 @@ int main() {
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     setupColorMap();
+    setupTextures();
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
@@ -119,9 +120,6 @@ int main() {
 void drawVertices(MinecraftAlter::Player& player) {
     MinecraftAlter::Quad::vertRenderCount = 0;
 
-    // Model Transform
-    auto model = glm::mat4(1.0f);
-
     // View(Camera) Transform
     CamView = glm::mat4(1.0f);
     if (isFirstPersonView) {
@@ -151,16 +149,16 @@ void drawVertices(MinecraftAlter::Player& player) {
     lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Link Variables to Shader Uniforms
-    shader.setMat4("model", model);
     shader.setMat4("view", CamView);
     shader.setMat4("projection", projection);
     shader.setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
     shader.setVec3("lightColor", lightColor);
     shader.setFloat("ambient", ambient);
     shader.setFloat("time", (float)glfwGetTime());
-    shNormal.setMat4("model", model);
     shNormal.setMat4("view", CamView);
     shNormal.setMat4("projection", projection);
+
+    shader.setInt("texBlocks", 0);
 
     drawWorldCubes();
 
@@ -171,6 +169,7 @@ void drawVertices(MinecraftAlter::Player& player) {
     shader.setMat4("model", SunPos);
     shader.setVec4("diffuseColor", glm::vec4{1.0});
     shader.setFloat("ambient", 1);
+    shader.setBool("useTexture", false);
     unitCube.XPos.renderQuad();
     unitCube.XNeg.renderQuad();
     unitCube.YPos.renderQuad();
@@ -184,13 +183,15 @@ void drawWorldCubes() {
     // Remove specular lighting and wave
     shader.setFloat("specularStrength", 0);
     shader.setFloat("waveStrength", 0);
+    shader.setBool("useTexture", true);
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
+                int currId = world.world[x][z][y];
                 // skip air block
-                if (!world.world[x][z][y]) continue;
+                if (!currId) continue;
                 // skip water
-                if (world.world[x][z][y] == 10) continue;
+                if (currId == 10) continue;
                 // skip block that is fully covered from the 6 directions
                 if (x != 0 && x != world.worldDimX - 1 &&
                     y != 0 && y != world.worldDimY - 1 &&
@@ -203,7 +204,8 @@ void drawWorldCubes() {
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
 
                 shader.setMat4("model", CubePos);
-                shader.setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
+                shader.setVec4("diffuseColor", cubeIdToColor.at(currId));
+                shader.setInt("blockId", currId);
                 shNormal.setMat4("model", CubePos);
                 if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y])) unitCube.XPos.renderQuad();
                 if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y])) unitCube.ZPos.renderQuad();
@@ -218,6 +220,7 @@ void drawWorldCubes() {
     // Add specular lighting and wave
     shader.setFloat("specularStrength", 2);
     shader.setFloat("waveStrength", 1);
+    shader.setBool("useTexture", false);
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
@@ -226,10 +229,8 @@ void drawWorldCubes() {
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
                 // If it is water surface, shrink height to pre-set value
-                if (y != world.worldDimY - 1 && world.world[x][z][y + 1] != 10) {
-                    CubePos = glm::translate(CubePos, glm::vec3{0, -.5 + WATER_SURFACE_CUBE_HEIGHT * .5, 0});
+                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
-                }
 
                 shader.setMat4("model", CubePos);
                 shader.setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
@@ -251,7 +252,7 @@ void setupColorMap() {
     cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
     cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
     cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.2, .6, .1, 1})); // 4: grass
+    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.5, .9, .1, 1})); // 4: grass
     cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
     cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
     cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .8})); // 10: water
@@ -259,6 +260,32 @@ void setupColorMap() {
 
 bool isBlockOpaque(int id) {
     return id != 0 && id != 10;
+}
+
+void setupTextures() {
+    glGenTextures(1, &texBlocks);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texBlocks);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    texBlocks_data = stbi_load(
+        "assets/textures/blocks.png",
+        &texBlocksDimX,
+        &texBlocksDimY,
+        &texBlocksNrChannels,
+        STBI_rgb_alpha);
+    if (texBlocks_data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texBlocksDimX, texBlocksDimY, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     texBlocks_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        printf("Failed to load texture");
+    }
+    stbi_image_free(texBlocks_data); // free the loaded image
+    shader.setInt("blockRes", 16);
+    shader.setInt("textureRes", texBlocksDimX);
 }
 
 

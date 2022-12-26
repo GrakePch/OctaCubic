@@ -10,10 +10,13 @@ Main Features:
 -	Moveable Sunlight
 -	Moveable Camera
 
-Used libraries: GLFW, Glad, glm.
+Used libraries: GLFW, Glad, glm, stb.
 
-![Current Progress](./images/221221.png?raw=true)
-*Fig 1. Current Progress*
+![Current Progress](./images/221226.png?raw=true)
+*Fig: Current Progress*
+
+![First Person View](./images/221226_fpv.png?raw=true)
+*Fig: First Person View*
 
 ## Controls
 
@@ -54,13 +57,18 @@ Used libraries: GLFW, Glad, glm.
 - [ ] Shadow Mapping (use depth map)
 - [x] Sky color changes with sun position
 - [ ] Light intensity changes with sun position
-- [ ] Performance improvement
+- [ ] Performance improvement **[postponed]**
 - [ ] A bigger world (procedurally loaded and unloaded chunks)
 - [ ] Texturing
+  - [x] Basic
+  - [ ] Multiple textures for one block
 - [ ] Screen-space reflection (for the water)
 - [ ] Ambient occlusion
 - [ ] Anti-aliasing
-- [ ] A controllable player in the world
+- [ ] Controllable player
+  - [ ] Movements **[WIP]**
+  - [ ] Collision **[WIP]**
+  - [ ] Block placing & destroying
 
 ## Implementation
 
@@ -79,24 +87,25 @@ When rendering each frame, it updates the background color according to the ligh
 After linking the variable to the shader uniforms, the function drawWorldCubes() is called to loop over the world info and render each cube. In every iteration, it first checks if the block is air, or if the 6 sides of the block are all covered by other blocks, then skip the render. After excluding the unnecessary blocks, it creates a translation matrix, to transform the unit cube vertices (centered at the origin, with the length = 1) to their proper coordinates, and pass that matrix to the shader. If the block is a water surface, it does a shrinking scale to make the water surface a bit lower than the shore, and also passes some variables to the shader for the specular lighting and wave simulation. Finally, it passes the preset cube color as the diffuse color to the shader.
 
 ![Wireframes of the scene](./images/221221_wireframes.png?raw=true)
-*Fig 2. Wireframe of the scene. The cubes and faces that are fully covered by other opaque cubes are not rendered to save performance. Face culling is also enabled.*
+*Fig: Wireframe of the scene. The cubes and faces that are fully covered by other opaque cubes are not rendered to save performance. Face culling is also enabled.*
 
 The shader is relatively simple. Most of the cubes use diffuse lighting, while the water cube uses the Blinn-Phone model to add a specular light. In addition, multiple sine wave rotations are applied to the fragment normal of the water surface, to create a simple wave simulation for the water.
 
 ![Normals of the scene](./images/221221_normals.png?raw=true)
-*Fig 3. Normals of the scene (Camera space).*
+*Fig: Normals of the scene (Camera space).*
 
 ![Showcase of wave simulation](./images/221221_waves.png?raw=true)
-*Fig 4. Showcase of wave simulation.*
+*Fig: Showcase of wave simulation.*
 
 ### References
 
-- OpenGL basics:
+- OpenGL basics
   - https://learnopengl.com/
-- Perlin Noise:
+- Perlin Noise
   - https://en.wikipedia.org/wiki/Perlin_noise
   - https://rtouti.github.io/graphics/perlin-noise-algorithm
   - https://www.bilibili.com/video/BV11V4y1M7N6
-- Rotation Transformation about an arbitrary axis:
+- Rotation Transformation about an arbitrary axis
   - https://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
-
+- Single header image loading lib
+  - https://github.com/nothings/stb/blob/master/stb_image.h

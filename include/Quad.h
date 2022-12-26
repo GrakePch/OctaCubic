@@ -1,6 +1,5 @@
 ﻿#ifndef MINECRAFTALTER_QUAD_H
 #define MINECRAFTALTER_QUAD_H
-#include <glad/glad.h>
 
 namespace MinecraftAlter
 {

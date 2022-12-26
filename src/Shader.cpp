@@ -80,6 +80,14 @@ void Shader::use() {
 }
 
 // Link Uniforms
+void Shader::setBool(const char* uniformName, bool val) {
+    setInt(uniformName, val);
+}
+
+void Shader::setInt(const char* uniformName, int val) {
+    glUniform1i(glGetUniformLocation(programId, uniformName), val);
+}
+
 void Shader::setFloat(const char* uniformName, float val) {
     glUniform1f(glGetUniformLocation(programId, uniformName), val);
 }

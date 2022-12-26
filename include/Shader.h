@@ -34,6 +34,8 @@ namespace MinecraftAlter
         const std::string readFile(const char* path);
 
         // Link Uniforms
+        void setBool(const char* uniformName, bool val);
+        void setInt(const char* uniformName, int val);
         void setFloat(const char* uniformName, float val);
         void setVec3(const char* uniformName, const glm::vec3 &vec);
         void setVec4(const char* uniformName, const glm::vec4 &vec);

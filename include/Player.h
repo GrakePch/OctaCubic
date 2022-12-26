@@ -41,34 +41,34 @@ namespace MinecraftAlter
                 location.z += deltaLocation.z;
                 return;
             }
-            int locXI = (int)floor(location.x);
-            int locYI = (int)floor(location.y);
-            int locZI = (int)floor(location.z);
-            float newLocX = location.x + deltaLocation.x;
-            float newLocY = location.y + deltaLocation.y;
-            float newLocZ = location.z + deltaLocation.z;
+            const int locXI = static_cast<int>(floor(location.x));
+            const int locYI = static_cast<int>(floor(location.y));
+            const int locZI = static_cast<int>(floor(location.z));
+            const float newLocX = location.x + deltaLocation.x;
+            const float newLocY = location.y + deltaLocation.y;
+            const float newLocZ = location.z + deltaLocation.z;
             location.x = clamp(newLocX,
                                blockHasCollision(locXI - 1, locYI, locZI)
-                                   ? (float)locXI + dimensions.x / 2
+                                   ? static_cast<float>(locXI) + dimensions.x / 2
                                    : newLocX,
                                blockHasCollision(locXI + 1, locYI, locZI)
-                                   ? (float)locXI - dimensions.x / 2 + 1
+                                   ? static_cast<float>(locXI) - dimensions.x / 2 + 1
                                    : newLocX
             );
             location.y = clamp(newLocY,
                                blockHasCollision(locXI, locYI - 1, locZI)
-                                   ? (float)locYI
+                                   ? static_cast<float>(locYI)
                                    : newLocY,
                                blockHasCollision(locXI, locYI + 2, locZI)
-                                   ? (float)locYI - dimensions.y + 2
+                                   ? static_cast<float>(locYI) - dimensions.y + 2
                                    : newLocY
             );
             location.z = clamp(newLocZ,
                                blockHasCollision(locXI, locYI, locZI - 1)
-                                   ? (float)locZI + dimensions.z / 2
+                                   ? static_cast<float>(locZI) + dimensions.z / 2
                                    : newLocZ,
                                blockHasCollision(locXI, locYI, locZI + 1)
-                                   ? (float)locZI - dimensions.z / 2 + 1
+                                   ? static_cast<float>(locZI) - dimensions.z / 2 + 1
                                    : newLocZ
             );
         }

@@ -1,6 +1,9 @@
 #ifndef MINECRAFTALTER_CORE_H
 #define MINECRAFTALTER_CORE_H
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 #include <iostream>
 #include <glad/glad.h> // Must before GLFW
 #include <GLFW/glfw3.h>
@@ -57,6 +60,13 @@ void drawVertices(MinecraftAlter::Player& player);
 void drawWorldCubes();
 void setupColorMap();
 bool isBlockOpaque(int id);
+
+// render textures
+int texBlocksDimX, texBlocksDimY, texBlocksNrChannels;
+unsigned char* texBlocks_data;
+unsigned int texBlocks;
+void setupTextures();
+
 
 // inputs
 static bool isFirstPersonView = false;

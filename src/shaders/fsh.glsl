@@ -1,10 +1,12 @@
 #version 460 core
+out vec4 FragColor;
+
 in vec3 fFragPos;
 in vec3 fNormal;
 in vec4 fColor;
-out vec4 FragColor;
 in vec3 fNormal_model;
 in vec3 fPos_model;
+in vec2 fTexCoord;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -13,6 +15,9 @@ uniform vec3 lightColor;
 uniform float ambient;
 uniform float specularStrength = 0;
 float PhongExp = 1024;
+uniform bool useTexture = true;
+uniform int blockId = 2;
+uniform sampler2D texBlocks;
 
 uniform float waveStrength = 0;
 uniform float time = 0;
@@ -56,5 +61,12 @@ void main() {
     vec3 halfVector = normalize(normalize(lightDir) + viewDir);
     float spec = pow(max(dot(normal_n, halfVector), 0.0), PhongExp);
     vec3 specular = specularStrength * spec * lightColor;
-    FragColor = vec4((ambient + diffuse) * fColor.rgb + specular, fColor.a);
+    // FragColor = vec4((ambient + diffuse) * fColor.rgb + specular, fColor.a);
+    bool isBlendColor = blockId == 4;
+    FragColor = vec4((ambient + diffuse) * (useTexture
+        ? isBlendColor 
+            ? texture(texBlocks, fTexCoord).rgb * fColor.rgb 
+            : texture(texBlocks, fTexCoord).rgb 
+        : fColor.rgb
+    ) + specular, fColor.a);
 }

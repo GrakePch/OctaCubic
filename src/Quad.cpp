@@ -1,20 +1,22 @@
 ﻿#include "Quad.h"
 
+#include <glad/glad.h>
+
 namespace MinecraftAlter
 {
     float quadXPos[] = {
         // positions         // normals         // texture Coords
-        +1.0f, -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        +1.0f, +1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        +1.0f, -1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        +1.0f, +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        +1.0f, -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        +1.0f, +1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        +1.0f, -1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        +1.0f, +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
     };
     float quadXNeg[] = {
         // positions         // normals         // texture Coords
-        -1.0f, -1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        -1.0f, +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        -1.0f, +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
     };
     float quadYPos[] = {
         // positions         // normals         // texture Coords
@@ -32,17 +34,17 @@ namespace MinecraftAlter
     };
     float quadZPos[] = {
         // positions         // normals         // texture Coords
-        -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f,
-        +1.0f, +1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f,
-        +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 0.0f,
+        -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f,
+        +1.0f, +1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f,
+        +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 1.0f,
     };
     float quadZNeg[] = {
         // positions         // normals         // texture Coords
-        -1.0f, +1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-        +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-        +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        -1.0f, +1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+        +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+        +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
     };
 
     unsigned int Quad::vertRenderCount = 0;
