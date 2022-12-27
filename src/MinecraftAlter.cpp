@@ -138,6 +138,9 @@ void drawVertices(MinecraftAlter::Player& player) {
         CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
         CamView = glm::translate(CamView, -world.worldCenter);
     }
+    // Clear cursor delta value
+    CursorDeltaX = 0;
+    CursorDeltaY = 0;
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,
@@ -296,6 +299,7 @@ void setInputs(GLFWwindow* window) {
     glfwSetMouseButtonCallback(window, mouseCallback);
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetWindowSizeCallback(window, windowSizeCallback);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -349,15 +353,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        if (!isFirstPersonView) {
+    if (!isFirstPersonView) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
             CursorControlCam = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             glfwSetCursorPos(window, (double)windowWidth / 2, (double)windowHeight / 2);
         }
-    }
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        if (!isFirstPersonView) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
             CursorControlCam = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
@@ -378,6 +380,14 @@ void cursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
     glfwSetCursorPos(window, (double)halfWidth, (double)halfHeight);
 }
 
+void windowSizeCallback(GLFWwindow* window, int width, int height) {
+    windowWidth = width;
+    windowHeight = height;
+    int x, y;
+    glfwGetFramebufferSize(window, &x, &y);
+    glViewport(0, 0, x, y);
+}
+
 void toggleFullScreen(GLFWwindow* window) {
     isFullScreen = !isFullScreen;
     if (isFullScreen) {
@@ -393,7 +403,7 @@ void toggleFullScreen(GLFWwindow* window) {
 }
 
 // FPS displaying
-void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr) {
+void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr_local) {
     timeCurr = glfwGetTime();
     timeDiff = timeCurr - timePrev;
     FrameCounter++;
@@ -408,9 +418,9 @@ void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr) {
             + dToDecimalStr(Second * 1000) + " MS | "
             + std::to_string(MinecraftAlter::Quad::vertRenderCount) + " Vertices | "
             + "Player @ "
-            + dToDecimalStr((double)player_ptr->location.x) + " "
-            + dToDecimalStr((double)player_ptr->location.y) + " "
-            + dToDecimalStr((double)player_ptr->location.z);
+            + dToDecimalStr((double)player_ptr_local->location.x) + " "
+            + dToDecimalStr((double)player_ptr_local->location.y) + " "
+            + dToDecimalStr((double)player_ptr_local->location.z);
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter

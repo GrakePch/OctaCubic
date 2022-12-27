@@ -82,6 +82,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 void cursorPosCallback(GLFWwindow* window, double xPos, double yPos);
+void windowSizeCallback(GLFWwindow* window, int width, int height);
 void toggleFullScreen(GLFWwindow* window);
 
 // FPS displaying
@@ -91,7 +92,7 @@ static double timeDiff;
 static double FPS = 0.0;
 static double Second = 0.0;
 static unsigned int FrameCounter = 0;
-void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr);
+void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr_local);
 std::string dToDecimalStr(double d);
 
 // interpolate
