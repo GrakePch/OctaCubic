@@ -8,6 +8,7 @@ out vec4 fColor;
 out vec3 fNormal_model;
 out vec3 fPos_model;
 out vec2 fTexCoord;
+out vec4 fFragPosLightSpace;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -16,6 +17,7 @@ uniform vec4 diffuseColor;
 uniform int blockId = 2;
 uniform int blockRes = 16;
 uniform int textureRes = 256;
+uniform mat4 lightSpaceMatrix;
 
 vec2 calcUV(int id, int blockRes, int textureRes, vec2 TexCoord) {
     vec2 result = TexCoord;
@@ -33,5 +35,6 @@ void main() {
     fPos_model = (model * vec4(aPosition, 1.0)).xyz;
     fColor = diffuseColor;
     fTexCoord = calcUV(blockId, blockRes, textureRes, aTexCoord);
+    fFragPosLightSpace = lightSpaceMatrix * model * vec4(aPosition, 1.0); // for shadow mapping
     gl_Position = projection * view * model * vec4(aPosition, 1.0);
 }

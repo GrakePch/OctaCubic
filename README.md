@@ -6,6 +6,7 @@ This is a project made in C++ with OpenGL. The goal is to create a small scene t
 Main Features:
 -	Terrain Generation
 -	Blinn-Phone lighting model
+- Shadow Mapping
 -	Simple wave simulation
 -	Moveable Sunlight
 -	Moveable Camera

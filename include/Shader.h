@@ -26,6 +26,7 @@ namespace MinecraftAlter
 {
     class Shader {
     public:
+        static Shader* activeShader;
         uint32 programId;
         Shader() = default;
         Shader(const char* vertexShaderPath, const char* fragmentShaderPath);

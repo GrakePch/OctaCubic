@@ -4,17 +4,19 @@
 
 using namespace MinecraftAlter;
 
+Shader* Shader::activeShader = nullptr;
 
 Shader::Shader(const char* vertexShaderPath, const char* fragmentShaderPath) {
     compile(vertexShaderPath, fragmentShaderPath);
+    programId = 0;
 }
 
 const std::string Shader::readFile(const char* path) {
     std::string line;
-    std::string code = "";
+    std::string code;
     std::ifstream file;
     file.open(path);
-    std::cout << "Loading: " << path << std::endl;
+    std::cout << "Loading: " << path;
 
     while (std::getline(file, line)) {
         code += line + "\n";
@@ -37,9 +39,10 @@ void Shader::compile(const char* vertexShaderPath, const char* fragmentShaderPat
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n '%s'\n", infoLog);
+        printf("\nERROR::SHADER::VERTEX::COMPILATION_FAILED\n '%s'\n", infoLog);
         glDeleteShader(vertexShader);
     }
+    printf("  Success!\n");
 
     // Fragment Shader
     const std::string& fshStr = readFile(fragmentShaderPath);
@@ -51,9 +54,10 @@ void Shader::compile(const char* vertexShaderPath, const char* fragmentShaderPat
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n '%s'\n", infoLog);
+        printf("\nERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n '%s'\n", infoLog);
         glDeleteShader(fragmentShader);
     }
+    printf("  Success!\n");
 
     // link shaders
     programId = glCreateProgram();
@@ -77,6 +81,7 @@ void Shader::compile(const char* vertexShaderPath, const char* fragmentShaderPat
 
 void Shader::use() {
     glUseProgram(programId);
+    activeShader = this;
 }
 
 // Link Uniforms

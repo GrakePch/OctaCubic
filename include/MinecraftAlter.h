@@ -39,7 +39,7 @@ static float skyColorMap[] = {
     19.0f, 0.0f, 0.0f, 0.05f,
     24.0f, 0.0f, 0.0f, 0.05f, // mid-night
 };
-static float ambient = 0.1f;
+static float ambient = 0.15f;
 
 // View(Camera) Transform
 static glm::mat4 CamView;
@@ -66,6 +66,12 @@ int texBlocksDimX, texBlocksDimY, texBlocksNrChannels;
 unsigned char* texBlocks_data;
 unsigned int texBlocks;
 void setupTextures();
+
+// depth map
+unsigned int depthMapFBO;
+const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
+unsigned int depthMap;
+void setupDepthMap();
 
 
 // inputs

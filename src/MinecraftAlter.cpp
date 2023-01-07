@@ -8,8 +8,10 @@
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
 
-static MinecraftAlter::Shader shader{};
-static MinecraftAlter::Shader shNormal{};
+MinecraftAlter::Shader shader{};
+MinecraftAlter::Shader shNormal{};
+MinecraftAlter::Shader shShadowMap{};
+MinecraftAlter::Shader shDebugDepth{};
 
 MinecraftAlter::World world{};
 MinecraftAlter::Player* player_ptr = nullptr;
@@ -52,8 +54,9 @@ int main() {
     // Make sure not to call any OpenGL functions until *after* we initialize our function loader
 
     shader.compile("src/shaders/vsh.glsl", "src/shaders/fsh.glsl");
-    shader.use();
     shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
+    shShadowMap.compile("src/shaders/shadowMap_v.glsl", "src/shaders/shadowMap_f.glsl");
+    shDebugDepth.compile("src/shaders/debug_depth_v.glsl", "src/shaders/debug_depth_f.glsl");
 
     // Set Inputs
     setInputs(window);
@@ -70,6 +73,7 @@ int main() {
 
     setupColorMap();
     setupTextures();
+    setupDepthMap();
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
@@ -116,11 +120,78 @@ int main() {
     glfwTerminate();
 }
 
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+
+void renderQuad() {
+    if (quadVAO == 0) {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
 // Render
 void drawVertices(MinecraftAlter::Player& player) {
     MinecraftAlter::Quad::vertRenderCount = 0;
 
+    // Light Position Transform
+    auto lightPosMtx = glm::mat4(1.0f);
+    if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
+    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    // Render to depth map from light's POV
+    const float near_plane = 100.0f, far_plane = 500.0f;
+    glm::mat4 lightProjection = glm::ortho(
+        -(float)world.worldDimMax,
+        (float)world.worldDimMax,
+        -(float)world.worldDimMax,
+        (float)world.worldDimMax,
+        near_plane, far_plane);
+    glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), world.worldCenter,
+                                      glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    shShadowMap.use();
+    shShadowMap.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    drawWorldCubes();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glViewport(0, 0, windowWidth, windowHeight);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // shDebugDepth.use();
+    // shDebugDepth.setFloat("near_plane", near_plane);
+    // shDebugDepth.setFloat("far_plane", far_plane);
+    // shDebugDepth.setInt("depthMap", 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthMap);
+    // renderQuad();
+    
+    // return;
     // View(Camera) Transform
+    glViewport(0, 0, windowWidth, windowHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    shader.use();
     CamView = glm::mat4(1.0f);
     if (isFirstPersonView) {
         player.updateLocation((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
@@ -146,33 +217,33 @@ void drawVertices(MinecraftAlter::Player& player) {
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,
                                             500.0f);
 
-    // Light Position Transform
-    auto lightPosMtx = glm::mat4(1.0f);
-    if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
-    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
-
     // Link Variables to Shader Uniforms
-    shader.setMat4("view", CamView);
-    shader.setMat4("projection", projection);
-    shader.setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
-    shader.setVec3("lightColor", lightColor);
-    shader.setFloat("ambient", ambient);
-    shader.setFloat("time", (float)glfwGetTime());
-    shNormal.setMat4("view", CamView);
-    shNormal.setMat4("projection", projection);
+    MinecraftAlter::Shader::activeShader->setMat4("view", CamView);
+    MinecraftAlter::Shader::activeShader->setMat4("projection", projection);
+    MinecraftAlter::Shader::activeShader->setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
+    MinecraftAlter::Shader::activeShader->setVec3("lightColor", lightColor);
+    MinecraftAlter::Shader::activeShader->setFloat("ambient", ambient);
+    MinecraftAlter::Shader::activeShader->setFloat("time", (float)glfwGetTime());
 
-    shader.setInt("texBlocks", 0);
+    MinecraftAlter::Shader::activeShader->setInt("texBlocks", 0);
+    MinecraftAlter::Shader::activeShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader.setInt("shadowMap", 1);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texBlocks);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    
     drawWorldCubes();
-
+    
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
     SunPos = glm::scale(SunPos, glm::vec3{(float)world.worldDimMax / 4});
-    shader.setMat4("model", SunPos);
-    shader.setVec4("diffuseColor", glm::vec4{1.0});
-    shader.setFloat("ambient", 1);
-    shader.setBool("useTexture", false);
+    MinecraftAlter::Shader::activeShader->setMat4("model", SunPos);
+    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{1.0});
+    MinecraftAlter::Shader::activeShader->setFloat("ambient", 1);
+    MinecraftAlter::Shader::activeShader->setBool("useTexture", false);
     unitCube.XPos.renderQuad();
     unitCube.XNeg.renderQuad();
     unitCube.YPos.renderQuad();
@@ -184,9 +255,9 @@ void drawVertices(MinecraftAlter::Player& player) {
 void drawWorldCubes() {
     // Draw opaque blocks
     // Remove specular lighting and wave
-    shader.setFloat("specularStrength", 0);
-    shader.setFloat("waveStrength", 0);
-    shader.setBool("useTexture", true);
+    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 0);
+    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 0);
+    MinecraftAlter::Shader::activeShader->setBool("useTexture", true);
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
@@ -206,10 +277,9 @@ void drawWorldCubes() {
                 glm::mat4 CubePos = glm::mat4(1.0f);
                 CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
 
-                shader.setMat4("model", CubePos);
-                shader.setVec4("diffuseColor", cubeIdToColor.at(currId));
-                shader.setInt("blockId", currId);
-                shNormal.setMat4("model", CubePos);
+                MinecraftAlter::Shader::activeShader->setMat4("model", CubePos);
+                MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", cubeIdToColor.at(currId));
+                MinecraftAlter::Shader::activeShader->setInt("blockId", currId);
                 if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y])) unitCube.XPos.renderQuad();
                 if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y])) unitCube.ZPos.renderQuad();
                 if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1])) unitCube.YPos.renderQuad();
@@ -221,9 +291,9 @@ void drawWorldCubes() {
     }
     // Draw water
     // Add specular lighting and wave
-    shader.setFloat("specularStrength", 2);
-    shader.setFloat("waveStrength", 1);
-    shader.setBool("useTexture", false);
+    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 2);
+    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 1);
+    MinecraftAlter::Shader::activeShader->setBool("useTexture", false);
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
@@ -235,9 +305,8 @@ void drawWorldCubes() {
                 if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
 
-                shader.setMat4("model", CubePos);
-                shader.setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
-                shNormal.setMat4("model", CubePos);
+                MinecraftAlter::Shader::activeShader->setMat4("model", CubePos);
+                MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
                 // if water face faces to water, not render
                 if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10) unitCube.XPos.renderQuad();
                 if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10) unitCube.ZPos.renderQuad();
@@ -289,6 +358,24 @@ void setupTextures() {
     stbi_image_free(texBlocks_data); // free the loaded image
     shader.setInt("blockRes", 16);
     shader.setInt("textureRes", texBlocksDimX);
+}
+
+void setupDepthMap() {
+    glGenFramebuffers(1, &depthMapFBO);
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+                 nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 

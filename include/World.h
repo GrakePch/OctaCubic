@@ -7,7 +7,7 @@ namespace MinecraftAlter
 {
     class World {
     public:
-        std::array<std::array<std::array<int, 72>, 72>, 72> world{};
+        std::array<std::array<std::array<int, 96>, 96>, 96> world{};
         int worldDimX;
         int worldDimZ;
         int worldDimY;
