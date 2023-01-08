@@ -6,17 +6,18 @@ This is a project made in C++ with OpenGL. The goal is to create a small scene t
 Main Features:
 -	Terrain Generation
 -	Blinn-Phone lighting model
-- Shadow Mapping
+- **[New] Shadow Mapping**
 -	Simple wave simulation
--	Moveable Sunlight
--	Moveable Camera
+- **[New] Player Movement**
+-	Controllable Sunlight position
+-	Controllable Orbiting Camera
 
 Used libraries: GLFW, Glad, glm, stb.
 
-![Current Progress](./images/221226.png?raw=true)
+![Current Progress](./images/230107.png?raw=true)
 *Fig: Current Progress*
 
-![First Person View](./images/221226_fpv.png?raw=true)
+![First Person View](./images/230107_fpv.png?raw=true)
 *Fig: First Person View*
 
 ## Controls
@@ -30,6 +31,7 @@ Used libraries: GLFW, Glad, glm, stb.
 | F2 | Show wireframes |
 | F3 | Show normal (camera view) |
 | F5 | Toggle Observer / First Person view |
+| F10 | Toggle Player Floating |
 | F11 | Toggle full screen |
 | F12 | Randomize terrain |
 | Esc | Exit |
@@ -49,13 +51,15 @@ Used libraries: GLFW, Glad, glm, stb.
 
 | Key | Operation |
 | --- | --- |
-| W / S | Player move forward / backward |
-| A / D | Player move to left / right |
-| Space / LCtrl | Player move up / down |
+| W / S | move forward / backward |
+| A / D | move to left / right |
+| LShift | sprinting |
+| Space | Jump |
+| Space / LCtrl | Floating Mode: Player move up / down |
 
 ## To-do
 
-- [ ] Shadow Mapping (use depth map)
+- [x] Shadow Mapping (use depth map)
 - [x] Sky color changes with sun position
 - [ ] Light intensity changes with sun position
 - [ ] Performance improvement **[postponed]**
@@ -67,7 +71,7 @@ Used libraries: GLFW, Glad, glm, stb.
 - [ ] Ambient occlusion
 - [ ] Anti-aliasing
 - [ ] Controllable player
-  - [ ] Movements **[WIP]**
+  - [x] Movements
   - [ ] Collision **[WIP]**
   - [ ] Block placing & destroying
 

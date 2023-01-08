@@ -15,7 +15,15 @@ namespace MinecraftAlter
         glm::vec3 location{0, 72, 0};
         float pitch = 0;
         float yaw = 0; // yaw = 0 facing x+
+        bool isSprinting = false;
+        bool isFloating = false;
         float speedWalk = 4.317f;
+        float speedSprint = 5.612f;
+        float speedJump = 10.0f;
+        float gravityAc = -32.0f;
+        float currSpeedUp = 0;
+        float lastSpeedUp = 0;
+        float tickSecond = 0; // updated in updateLocation();
         World* world_ptr = nullptr;
 
         Player() = default;
@@ -32,6 +40,10 @@ namespace MinecraftAlter
                 return false;
             const int blockId = world_ptr->world[x][z][y];
             return blockId != 0 && blockId != 10;
+        }
+
+        bool isInAir() const {
+            return currSpeedUp == 0.0f && lastSpeedUp == 0.0f;
         }
 
         void clampToCollision(glm::vec3 deltaLocation) {
@@ -55,6 +67,7 @@ namespace MinecraftAlter
                                    ? static_cast<float>(locXI) - dimensions.x / 2 + 1
                                    : newLocX
             );
+            const float locYOld = location.y;
             location.y = clamp(newLocY,
                                blockHasCollision(locXI, locYI - 1, locZI)
                                    ? static_cast<float>(locYI)
@@ -63,6 +76,7 @@ namespace MinecraftAlter
                                    ? static_cast<float>(locYI) - dimensions.y + 2
                                    : newLocY
             );
+            currSpeedUp = (location.y - locYOld) / tickSecond; // Actual Speed Up
             location.z = clamp(newLocZ,
                                blockHasCollision(locXI, locYI, locZI - 1)
                                    ? static_cast<float>(locZI) + dimensions.z / 2
@@ -74,27 +88,41 @@ namespace MinecraftAlter
         }
 
         void updateLocation(float interval, int inputForward, int inputRight, int inputUp) {
+            tickSecond = interval;
+            lastSpeedUp = currSpeedUp;
+            // Calculate horizontal movement
             const glm::vec2 moveXZ = glm::normalize(glm::vec2(inputForward, inputRight));
-            if (inputForward) {
-                const float moveDist = speedWalk * interval * moveXZ.x;
-                clampToCollision(glm::vec3(
+            float moveDistForward = 0, moveDistRight = 0, moveDistUp = 0;
+            if (inputForward) moveDistForward = (isSprinting ? speedSprint : speedWalk) * interval * moveXZ.x;
+            if (inputRight) moveDistRight = (isSprinting ? speedSprint : speedWalk) * interval * moveXZ.y;
+            if (isFloating) {
+                if (inputUp)
+                    moveDistUp = (isSprinting ? speedSprint : speedWalk) * interval * static_cast<float>(inputUp);
+            } else {
+                // Calculate gravity
+                currSpeedUp += gravityAc * interval; // Intended Speed Up
+                moveDistUp = currSpeedUp * interval; // Intended Distance Up
+            }
+
+            const glm::vec3 moveDistXYZ =
+                moveDistForward * glm::vec3(
                     sin(static_cast<double>(yaw) * PI / 180),
                     0,
                     -cos(static_cast<double>(yaw) * PI / 180)
-                ) * moveDist);
-            }
-            if (inputRight) {
-                const float moveDist = speedWalk * interval * moveXZ.y;
-                clampToCollision(glm::vec3(
+                )
+                + moveDistRight * glm::vec3(
                     cos(static_cast<double>(yaw) * PI / 180),
                     0,
                     sin(static_cast<double>(yaw) * PI / 180)
-                ) * moveDist);
-            }
-            if (inputUp) {
-                const float moveDist = speedWalk * interval * static_cast<float>(inputUp);
-                clampToCollision({0, moveDist, 0});
-            }
+                )
+                + glm::vec3(0, moveDistUp, 0);
+
+            clampToCollision(moveDistXYZ);
+            printf("speed up: %f\n", currSpeedUp);
+        }
+
+        void jump() {
+            if (isInAir()) currSpeedUp = speedJump;
         }
 
         glm::mat4 rotateFacing(glm::mat4 CamView, float deltaX, float deltaY, float sensitivity) {

@@ -186,7 +186,7 @@ void drawVertices(MinecraftAlter::Player& player) {
     // glActiveTexture(GL_TEXTURE0);
     // glBindTexture(GL_TEXTURE_2D, depthMap);
     // renderQuad();
-    
+
     // return;
     // View(Camera) Transform
     glViewport(0, 0, windowWidth, windowHeight);
@@ -233,9 +233,9 @@ void drawVertices(MinecraftAlter::Player& player) {
     glBindTexture(GL_TEXTURE_2D, texBlocks);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-    
+
     drawWorldCubes();
-    
+
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
@@ -399,10 +399,17 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         if (key == GLFW_KEY_D && action == GLFW_RELEASE) playerMoveRight = 0;
         if (key == GLFW_KEY_A && action == GLFW_PRESS) playerMoveRight = -1;
         if (key == GLFW_KEY_A && action == GLFW_RELEASE) playerMoveRight = 0;
-        if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) playerMoveUp = +1;
-        if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) playerMoveUp = 0;
-        if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) playerMoveUp = -1;
-        if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) playerMoveUp = 0;
+        if (key == GLFW_KEY_F10 && action == GLFW_PRESS) player_ptr->isFloating = !player_ptr->isFloating;
+        if (player_ptr->isFloating) {
+            if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) playerMoveUp = +1;
+            if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) playerMoveUp = 0;
+            if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) playerMoveUp = -1;
+            if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) playerMoveUp = 0;
+        } else {
+            if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) player_ptr->jump();
+        }
+        if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) player_ptr->isSprinting = true;
+        if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) player_ptr->isSprinting = false;
     }
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) lightPosInputRotZ = +1;
     if (key == GLFW_KEY_Q && action == GLFW_RELEASE) lightPosInputRotZ = 0;
