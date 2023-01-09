@@ -9,6 +9,7 @@ Main Features:
 - **[New] Shadow Mapping**
 -	Simple wave simulation
 - **[New] Player Movement**
+- **[New] Player Collision**
 -	Controllable Sunlight position
 -	Controllable Orbiting Camera
 
@@ -72,7 +73,7 @@ Used libraries: GLFW, Glad, glm, stb.
 - [ ] Anti-aliasing
 - [ ] Controllable player
   - [x] Movements
-  - [ ] Collision **[WIP]**
+  - [x] Collision
   - [ ] Block placing & destroying
 
 ## Implementation

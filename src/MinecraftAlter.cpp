@@ -214,7 +214,11 @@ void drawVertices(MinecraftAlter::Player& player) {
     CursorDeltaY = 0;
 
     // Perspective Transform
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f,
+    glm::mat4 projection = glm::perspective(glm::radians(isFirstPersonView
+                                                             ? 90.0f * (float)windowHeight / (float)windowWidth
+                                                             : 45.0f),
+                                            (float)windowWidth / (float)windowHeight,
+                                            0.1f,
                                             500.0f);
 
     // Link Variables to Shader Uniforms

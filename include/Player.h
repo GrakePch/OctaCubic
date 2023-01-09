@@ -46,7 +46,7 @@ namespace MinecraftAlter
             return currSpeedUp == 0.0f && lastSpeedUp == 0.0f;
         }
 
-        void clampToCollision(glm::vec3 deltaLocation) {
+        void updateLocation(glm::vec3 deltaLocation) {
             if (!world_ptr) {
                 location.x += deltaLocation.x;
                 location.y += deltaLocation.y;
@@ -59,6 +59,11 @@ namespace MinecraftAlter
             const float newLocX = location.x + deltaLocation.x;
             const float newLocY = location.y + deltaLocation.y;
             const float newLocZ = location.z + deltaLocation.z;
+
+            const float bias = 0.01f;
+            // ^ if not use it, player will stuck in an edge of a block if walking closely along a wall
+            
+            ////// Update location X //////
             location.x = clamp(newLocX,
                                blockHasCollision(locXI - 1, locYI, locZI)
                                    ? static_cast<float>(locXI) + dimensions.x / 2
@@ -67,6 +72,62 @@ namespace MinecraftAlter
                                    ? static_cast<float>(locXI) - dimensions.x / 2 + 1
                                    : newLocX
             );
+            if (location.z - locZI < dimensions.z / 2 - bias) {
+                // player's z- side is out of current square
+                location.x = clamp(location.x,
+                                   blockHasCollision(locXI - 1, locYI, locZI - 1)
+                                       ? static_cast<float>(locXI) + dimensions.x / 2
+                                       : location.x,
+                                   blockHasCollision(locXI + 1, locYI, locZI - 1)
+                                       ? static_cast<float>(locXI) - dimensions.x / 2 + 1
+                                       : location.x
+                );
+            }
+            if (location.z - locZI > 1 - dimensions.z / 2 + bias) {
+                // player's z+ side is out of current square
+                location.x = clamp(location.x,
+                                   blockHasCollision(locXI - 1, locYI, locZI + 1)
+                                       ? static_cast<float>(locXI) + dimensions.x / 2
+                                       : location.x,
+                                   blockHasCollision(locXI + 1, locYI, locZI + 1)
+                                       ? static_cast<float>(locXI) - dimensions.x / 2 + 1
+                                       : location.x
+                );
+            }
+            
+            ////// Update Location Z //////
+            location.z = clamp(newLocZ,
+                               blockHasCollision(locXI, locYI, locZI - 1)
+                                   ? static_cast<float>(locZI) + dimensions.z / 2
+                                   : newLocZ,
+                               blockHasCollision(locXI, locYI, locZI + 1)
+                                   ? static_cast<float>(locZI) - dimensions.z / 2 + 1
+                                   : newLocZ
+            );
+            if (location.x - locXI < dimensions.x / 2 - bias) {
+                // player's x- side is out of current square
+                location.z = clamp(location.z,
+                                   blockHasCollision(locXI - 1, locYI, locZI - 1)
+                                       ? static_cast<float>(locZI) + dimensions.z / 2
+                                       : location.z,
+                                   blockHasCollision(locXI - 1, locYI, locZI + 1)
+                                       ? static_cast<float>(locZI) - dimensions.z / 2 + 1
+                                       : location.z
+                );
+            }
+            if (location.x - locXI > 1 - dimensions.x / 2 + bias) {
+                // player's x+ side is out of current square
+                location.z = clamp(location.z,
+                                   blockHasCollision(locXI + 1, locYI, locZI - 1)
+                                       ? static_cast<float>(locZI) + dimensions.z / 2
+                                       : location.z,
+                                   blockHasCollision(locXI + 1, locYI, locZI + 1)
+                                       ? static_cast<float>(locZI) - dimensions.z / 2 + 1
+                                       : location.z
+                );
+            }
+            
+            ////// Update Location Y //////
             const float locYOld = location.y;
             location.y = clamp(newLocY,
                                blockHasCollision(locXI, locYI - 1, locZI)
@@ -76,15 +137,51 @@ namespace MinecraftAlter
                                    ? static_cast<float>(locYI) - dimensions.y + 2
                                    : newLocY
             );
-            currSpeedUp = (location.y - locYOld) / tickSecond; // Actual Speed Up
-            location.z = clamp(newLocZ,
-                               blockHasCollision(locXI, locYI, locZI - 1)
-                                   ? static_cast<float>(locZI) + dimensions.z / 2
-                                   : newLocZ,
-                               blockHasCollision(locXI, locYI, locZI + 1)
-                                   ? static_cast<float>(locZI) - dimensions.z / 2 + 1
-                                   : newLocZ
-            );
+            if (location.x - locXI < dimensions.x / 2 - bias) {
+                // player's x- side is out of current square
+                location.y = clamp(location.y,
+                                   blockHasCollision(locXI - 1, locYI - 1, locZI)
+                                       ? static_cast<float>(locYI)
+                                       : location.y,
+                                   blockHasCollision(locXI - 1, locYI + 2, locZI)
+                                       ? static_cast<float>(locYI) - dimensions.y + 2
+                                       : location.y
+                );
+            }
+            if (location.x - locXI > 1 - dimensions.x / 2 + bias) {
+                // player's x+ side is out of current square
+                location.y = clamp(location.y,
+                                   blockHasCollision(locXI + 1, locYI - 1, locZI)
+                                       ? static_cast<float>(locYI)
+                                       : location.y,
+                                   blockHasCollision(locXI + 1, locYI + 2, locZI)
+                                       ? static_cast<float>(locYI) - dimensions.y + 2
+                                       : location.y
+                );
+            }
+            if (location.z - locZI < dimensions.z / 2 - bias) {
+                // player's z- side is out of current square
+                location.y = clamp(location.y,
+                                   blockHasCollision(locXI, locYI - 1, locZI - 1)
+                                       ? static_cast<float>(locYI)
+                                       : location.y,
+                                   blockHasCollision(locXI, locYI + 2, locZI - 1)
+                                       ? static_cast<float>(locYI) - dimensions.y + 2
+                                       : location.y
+                );
+            }
+            if (location.z - locZI > 1 - dimensions.z / 2 + bias) {
+                // player's z+ side is out of current square
+                location.y = clamp(location.y,
+                                   blockHasCollision(locXI, locYI - 1, locZI + 1)
+                                       ? static_cast<float>(locYI)
+                                       : location.y,
+                                   blockHasCollision(locXI, locYI + 2, locZI + 1)
+                                       ? static_cast<float>(locYI) - dimensions.y + 2
+                                       : location.y
+                );
+            }
+            currSpeedUp = (location.y - locYOld) / tickSecond; // Actual Speed Y
         }
 
         void updateLocation(float interval, int inputForward, int inputRight, int inputUp) {
@@ -117,7 +214,7 @@ namespace MinecraftAlter
                 )
                 + glm::vec3(0, moveDistUp, 0);
 
-            clampToCollision(moveDistXYZ);
+            updateLocation(moveDistXYZ);
             printf("speed up: %f\n", currSpeedUp);
         }
 
