@@ -15,10 +15,10 @@ Main Features:
 
 Used libraries: GLFW, Glad, glm, stb.
 
-![Current Progress](./images/230107.png?raw=true)
+![Current Progress](./images/230108.png?raw=true)
 *Fig: Current Progress*
 
-![First Person View](./images/230107_fpv.png?raw=true)
+![First Person View](./images/230108_fpv.png?raw=true)
 *Fig: First Person View*
 
 ## Controls
