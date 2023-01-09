@@ -174,7 +174,7 @@ void drawVertices(MinecraftAlter::Player& player) {
     glClear(GL_DEPTH_BUFFER_BIT);
     shShadowMap.use();
     shShadowMap.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-    drawWorldCubes();
+    drawWorldCubes(false);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // glViewport(0, 0, windowWidth, windowHeight);
@@ -256,7 +256,7 @@ void drawVertices(MinecraftAlter::Player& player) {
     unitCube.ZNeg.renderQuad();
 }
 
-void drawWorldCubes() {
+void drawWorldCubes(bool drawWater) {
     // Draw opaque blocks
     // Remove specular lighting and wave
     MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 0);
@@ -293,6 +293,7 @@ void drawWorldCubes() {
             }
         }
     }
+    if (!drawWater) return;
     // Draw water
     // Add specular lighting and wave
     MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 2);

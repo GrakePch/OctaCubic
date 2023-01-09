@@ -57,7 +57,7 @@ static float lightPosRotZ = 0.0f;
 
 // render
 void drawVertices(MinecraftAlter::Player& player);
-void drawWorldCubes();
+void drawWorldCubes(bool drawWater = true);
 void setupColorMap();
 bool isBlockOpaque(int id);
 
