@@ -2,12 +2,13 @@
 #include <array>
 #include <glm/vec3.hpp>
 
+#define DIM 96
 
 namespace MinecraftAlter
 {
     class World {
     public:
-        std::array<std::array<std::array<int, 96>, 96>, 96> world{};
+        std::array<std::array<std::array<int, DIM>, DIM>, DIM> world{};
         int worldDimX;
         int worldDimZ;
         int worldDimY;

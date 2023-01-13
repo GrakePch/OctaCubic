@@ -3,10 +3,13 @@
 #include "Cube.h"
 #include "World.h"
 
-#include <map>
-
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
+
+#define VERTICES_BUFFER_SIZE 191102976
+// 96^3 blocks * 6 faces * 4 vertices * 9 attributes
+#define INDICES_BUFFER_SIZE 31850496
+// 96^3 blocks * 6 faces * 6 indices
 
 MinecraftAlter::Shader shader{};
 MinecraftAlter::Shader shNormal{};
@@ -17,7 +20,15 @@ MinecraftAlter::World world{};
 MinecraftAlter::Player* player_ptr = nullptr;
 
 MinecraftAlter::Cube unitCube{true};
-std::map<int, glm::vec4> cubeIdToColor;
+
+float verticesBuff[VERTICES_BUFFER_SIZE] = {0};
+int indicesBuff[INDICES_BUFFER_SIZE] = {0};
+float verticesWaterBuff[VERTICES_BUFFER_SIZE] = {0};
+int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
+
+unsigned int worldVAO = 0;
+unsigned int worldVBO;
+unsigned int worldEBO;
 
 int main() {
     if (!glfwInit()) {
@@ -70,11 +81,7 @@ int main() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     std::cout << glGetString(GL_VERSION) << std::endl;
-
-    setupColorMap();
-    setupTextures();
-    setupDepthMap();
-
+    
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
     lightPosMat = glm::translate(lightPosMat, world.worldCenter); // Move to world center
@@ -89,6 +96,10 @@ int main() {
     player_ptr = &player;
     player.world_ptr = &world;
     if (!player.generatePlayerSpawn()) { return -1; }
+
+    genWorldVertices();
+    setupDepthMap();
+    setupTextures();
 
     while (!glfwWindowShouldClose(window)) {
         displayFPS(window, &player);
@@ -238,8 +249,15 @@ void drawVertices(MinecraftAlter::Player& player) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
 
+    // Draw opaque blocks
+    // Remove specular lighting and wave
+    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 0);
+    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 0);
+    MinecraftAlter::Shader::activeShader->setBool("useTexture", true);
+    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.5, .9, .1, 1});
     drawWorldCubes();
 
+    return;
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
     SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
@@ -256,12 +274,36 @@ void drawVertices(MinecraftAlter::Player& player) {
     unitCube.ZNeg.renderQuad();
 }
 
-void drawWorldCubes(bool drawWater) {
-    // Draw opaque blocks
-    // Remove specular lighting and wave
-    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 0);
-    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 0);
-    MinecraftAlter::Shader::activeShader->setBool("useTexture", true);
+void overwriteVertexBuff(int* currQuadIdx, const float* arr, int blockId, int x, int y, int z) {
+    for (int i = 0; i < 4; ++i) {
+        verticesBuff[*currQuadIdx * 36 + i * 9 + 0] = arr[i * 8 + 0] + (float)x;
+        verticesBuff[*currQuadIdx * 36 + i * 9 + 1] = arr[i * 8 + 1] + (float)y;
+        verticesBuff[*currQuadIdx * 36 + i * 9 + 2] = arr[i * 8 + 2] + (float)z;
+        // printf("coords: %f %f %f\n",
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 0],
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 1],
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 2]);
+        for (int val = 3; val < 8; ++val) {
+            verticesBuff[*currQuadIdx * 36 + i * 9 + val] = arr[i * 8 + val];
+        }
+        verticesBuff[*currQuadIdx * 36 + i * 9 + 8] = (float)blockId;
+        //printf("id: %d\n", blockId);
+    }
+    const int startIdx = *currQuadIdx * 6;
+    const int startIdxOfVertex = *currQuadIdx * 4;
+    indicesBuff[startIdx + 0] = startIdxOfVertex + 0;
+    indicesBuff[startIdx + 1] = startIdxOfVertex + 1;
+    indicesBuff[startIdx + 2] = startIdxOfVertex + 2;
+    indicesBuff[startIdx + 3] = startIdxOfVertex + 2;
+    indicesBuff[startIdx + 4] = startIdxOfVertex + 1;
+    indicesBuff[startIdx + 5] = startIdxOfVertex + 3;
+    //printf("%d %d %d %d %d %d\n", indicesBuff[startIdx + 0], indicesBuff[startIdx + 1], indicesBuff[startIdx + 2],
+    // indicesBuff[startIdx + 3], indicesBuff[startIdx + 4], indicesBuff[startIdx + 5]);
+    ++*currQuadIdx;
+}
+
+void genWorldVertices() {
+    int currQuadIdx = 0;
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
@@ -278,61 +320,31 @@ void drawWorldCubes(bool drawWater) {
                     isBlockOpaque(world.world[x][z + 1][y]) && isBlockOpaque(world.world[x][z - 1][y]) &&
                     isBlockOpaque(world.world[x][z][y + 1]) && isBlockOpaque(world.world[x][z][y - 1]))
                     continue;
-                glm::mat4 CubePos = glm::mat4(1.0f);
-                CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
 
-                MinecraftAlter::Shader::activeShader->setMat4("model", CubePos);
-                MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", cubeIdToColor.at(currId));
-                MinecraftAlter::Shader::activeShader->setInt("blockId", currId);
-                if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y])) unitCube.XPos.renderQuad();
-                if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y])) unitCube.ZPos.renderQuad();
-                if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1])) unitCube.YPos.renderQuad();
-                if (x == 0 || !isBlockOpaque(world.world[x - 1][z][y])) unitCube.XNeg.renderQuad();
-                if (z == 0 || !isBlockOpaque(world.world[x][z - 1][y])) unitCube.ZNeg.renderQuad();
-                if (y == 0 || !isBlockOpaque(world.world[x][z][y - 1])) unitCube.YNeg.renderQuad();
-            }
-        }
-    }
-    if (!drawWater) return;
-    // Draw water
-    // Add specular lighting and wave
-    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 2);
-    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 1);
-    MinecraftAlter::Shader::activeShader->setBool("useTexture", false);
-    for (int x = 0; x < world.worldDimMax; ++x) {
-        for (int z = 0; z < world.worldDimMax; ++z) {
-            for (int y = 0; y < world.worldDimMax; ++y) {
-                // skip not water
-                if (world.world[x][z][y] != 10) continue;
-                glm::mat4 CubePos = glm::mat4(1.0f);
-                CubePos = glm::translate(CubePos, glm::vec3{x, y, z});
-                // If it is water surface, shrink height to pre-set value
-                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
-                    CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
-
-                MinecraftAlter::Shader::activeShader->setMat4("model", CubePos);
-                MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", cubeIdToColor.at(world.world[x][z][y]));
-                // if water face faces to water, not render
-                if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10) unitCube.XPos.renderQuad();
-                if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10) unitCube.ZPos.renderQuad();
-                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10) unitCube.YPos.renderQuad();
-                if (x == 0 || world.world[x - 1][z][y] != 10) unitCube.XNeg.renderQuad();
-                if (z == 0 || world.world[x][z - 1][y] != 10) unitCube.ZNeg.renderQuad();
-                if (y == 0 || world.world[x][z][y - 1] != 10) unitCube.YNeg.renderQuad();
+                if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.XPos.getVertices(), currId, x, y, z);
+                if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.ZPos.getVertices(), currId, x, y, z);
+                if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.YPos.getVertices(), currId, x, y, z);
+                if (x == 0 || !isBlockOpaque(world.world[x - 1][z][y]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.XNeg.getVertices(), currId, x, y, z);
+                if (z == 0 || !isBlockOpaque(world.world[x][z - 1][y]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.ZNeg.getVertices(), currId, x, y, z);
+                if (y == 0 || !isBlockOpaque(world.world[x][z][y - 1]))
+                    overwriteVertexBuff(&currQuadIdx, unitCube.YNeg.getVertices(), currId, x, y, z);
             }
         }
     }
 }
 
-void setupColorMap() {
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(0, glm::vec4{0})); // 0: air
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(1, glm::vec4{.1, .1, .1, 1})); // 1: bedrock
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(2, glm::vec4{.5, .5, .5, 1})); // 2: stone
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(3, glm::vec4{.6, .4, .1, 1})); // 3: dirt
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(4, glm::vec4{.5, .9, .1, 1})); // 4: grass
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(5, glm::vec4{.8, .8, .5, 1})); // 5: sand
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(6, glm::vec4{.85, .9, .95, 1})); // 6: snow
-    cubeIdToColor.insert(std::pair<int, glm::vec4>(10, glm::vec4{.2, .4, .9, .8})); // 10: water
+void drawWorldCubes(bool drawWater) {
+    MinecraftAlter::Shader::activeShader->setMat4("model", glm::mat4(1.0f));
+    glBindVertexArray(worldVAO);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, worldEBO);
+    glDrawElements(GL_TRIANGLES, INDICES_BUFFER_SIZE, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }
 
 bool isBlockOpaque(int id) {
@@ -363,6 +375,29 @@ void setupTextures() {
     stbi_image_free(texBlocks_data); // free the loaded image
     shader.setInt("blockRes", 16);
     shader.setInt("textureRes", texBlocksDimX);
+
+
+    // setup plane's Vertex Array Object
+    glGenVertexArrays(1, &worldVAO);
+    glBindVertexArray(worldVAO);
+    // Copy the vertices array in a vertex buffer for OpenGL to use
+    glGenBuffers(1, &worldVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, worldVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verticesBuff), &verticesBuff, GL_STATIC_DRAW);
+    // Set the vertex attributes pointers
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(8 * sizeof(float)));
+    // Element Buffer Objects
+    glGenBuffers(1, &worldEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, worldEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesBuff), indicesBuff, GL_STATIC_DRAW);
+
 }
 
 void setupDepthMap() {

@@ -8,6 +8,7 @@ in vec3 fNormal_model;
 in vec3 fPos_model;
 in vec2 fTexCoord;
 in vec4 fFragPosLightSpace;
+flat in int fBlockId;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -17,7 +18,6 @@ uniform float ambient;
 uniform float specularStrength = 0;
 float PhongExp = 1024;
 uniform bool useTexture = true;
-uniform int blockId = 2;
 uniform sampler2D texBlocks;
 uniform sampler2D shadowMap;
 
@@ -99,7 +99,7 @@ void main() {
     // Shadow
     float shadow = calcShadow(fFragPosLightSpace);
 
-    bool isBlendColor = blockId == 4;
+    bool isBlendColor = fBlockId == 4;
     vec3 texColor = useTexture
         ? isBlendColor 
             ? texture(texBlocks, fTexCoord).rgb * fColor.rgb 

@@ -57,9 +57,13 @@ static float lightPosRotZ = 0.0f;
 
 // render
 void drawVertices(MinecraftAlter::Player& player);
+void overwriteVertexBuff(int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
+void genWorldVertices();
 void drawWorldCubes(bool drawWater = true);
-void setupColorMap();
 bool isBlockOpaque(int id);
+
+// setup buffers
+void setupBuffers(const float* verticesBuffer, const int* indicesBuffer);
 
 // render textures
 int texBlocksDimX, texBlocksDimY, texBlocksNrChannels;

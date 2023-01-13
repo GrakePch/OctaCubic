@@ -18,6 +18,7 @@ namespace MinecraftAlter
         void scale(float scale);
         void removeNegPosition();
         void renderQuad();
+        float* getVertices();
     };
 }
 

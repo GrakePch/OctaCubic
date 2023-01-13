@@ -106,4 +106,8 @@ namespace MinecraftAlter
         vertRenderCount += 4;
         glBindVertexArray(0);
     }
+
+    float* Quad::getVertices() {
+        return vertices;
+    }
 }
