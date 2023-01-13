@@ -55,15 +55,21 @@ static float CamValPitch = 30.0f;
 static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
-// render
-void drawVertices(MinecraftAlter::Player& player);
-void overwriteVertexBuff(int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
+// Generate terrain vertices
 void genWorldVertices();
-void drawWorldCubes(bool drawWater = true);
-bool isBlockOpaque(int id);
+void genWaterVertices();
+void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
+                         int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
 
 // setup buffers
-void setupBuffers(const float* verticesBuffer, const int* indicesBuffer);
+void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
+                  const float* verticesBuffer, const unsigned int* indicesBuffer);
+
+// render
+void drawVertices(MinecraftAlter::Player& player);
+void drawTerrain();
+void drawWater();
+bool isBlockOpaque(int id);
 
 // render textures
 int texBlocksDimX, texBlocksDimY, texBlocksNrChannels;
