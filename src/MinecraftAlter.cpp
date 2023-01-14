@@ -89,7 +89,6 @@ int main() {
     if (!player.generatePlayerSpawn()) { return -1; }
 
     genWorldVertices();
-    genWaterVertices();
     setupDepthMap();
     setupTextures();
     setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
@@ -155,8 +154,15 @@ void renderQuad() {
 }
 
 
-// Generate terrain vertices
+// Generate world vertices
 void genWorldVertices() {
+    worldVertCount = 0;
+    genTerrainVertices();
+    genWaterVertices();
+}
+
+
+void genTerrainVertices() {
     int currQuadIdx = 0;
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
@@ -257,6 +263,7 @@ void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
         }
         verticesBuffer[*currQuadIdx * 36 + i * 9 + 8] = (float)blockId;
         //printf("id: %d\n", blockId);
+        worldVertCount++;
     }
     const int startIdx = *currQuadIdx * 6;
     const int startIdxOfVertex = *currQuadIdx * 4;
@@ -272,13 +279,14 @@ void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
 }
 
 void clearVerticesBuffer(float* verticesBuffer, unsigned int* indicesBuffer) {
+    worldVertCount = 0;
     for (int i = 0; i < VERTICES_BUFFER_SIZE; ++i) verticesBuffer[i] = 0;
     for (int i = 0; i < INDICES_BUFFER_SIZE; ++i) indicesBuffer[i] = 0;
 }
 
 // Render
 void drawVertices(MinecraftAlter::Player& player) {
-    MinecraftAlter::Quad::vertRenderCount = 0;
+    // MinecraftAlter::Quad::vertRenderCount = 0;
 
     // Light Position Transform
     auto lightPosMtx = glm::mat4(1.0f);
@@ -550,7 +558,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         clearVerticesBuffer(verticesBuff, indicesBuff);
         clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff);
         genWorldVertices();
-        genWaterVertices();
         setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
         setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
         if (player_ptr) player_ptr->generatePlayerSpawn();
@@ -621,7 +628,7 @@ void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr_loc
             windowTitle + "   "
             + dToDecimalStr(FPS) + " FPS | "
             + dToDecimalStr(Second * 1000) + " MS | "
-            + std::to_string(MinecraftAlter::Quad::vertRenderCount) + " Vertices | "
+            + std::to_string(worldVertCount) + " Vertices | "
             + "Player @ "
             + dToDecimalStr((double)player_ptr_local->location.x) + " "
             + dToDecimalStr((double)player_ptr_local->location.y) + " "

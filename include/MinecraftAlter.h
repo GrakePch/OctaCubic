@@ -74,8 +74,10 @@ unsigned int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
 void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
                   const float* verticesBuffer, const unsigned int* indicesBuffer);
 
-// Generate terrain vertices
+// Generate world vertices
+unsigned int worldVertCount = 0;
 void genWorldVertices();
+void genTerrainVertices();
 void genWaterVertices();
 void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
                          int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
