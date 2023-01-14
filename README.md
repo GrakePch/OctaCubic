@@ -60,21 +60,21 @@ Used libraries: GLFW, Glad, glm, stb.
 
 ## To-do
 
-- [x] Shadow Mapping (use depth map)
-- [x] Sky color changes with sun position
 - [ ] Light intensity changes with sun position
-- [ ] Performance improvement **[postponed]**
 - [ ] A bigger world (procedurally loaded and unloaded chunks)
-- [ ] Texturing
-  - [x] Basic
-  - [ ] Multiple textures for one block
 - [ ] Screen-space reflection (for the water)
 - [ ] Ambient occlusion
 - [ ] Anti-aliasing
+- [ ] Texturing
+  - [x] Basic
+  - [ ] Multiple textures for one block
 - [ ] Controllable player
   - [x] Movements
   - [x] Collision
   - [ ] Block placing & destroying
+- [x] Performance improvement
+- [x] Shadow Mapping (use depth map)
+- [x] Sky color changes with sun position
 
 ## Implementation
 
