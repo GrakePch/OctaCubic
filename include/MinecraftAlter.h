@@ -103,7 +103,7 @@ unsigned int depthMapFBO;
 const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 unsigned int depthMap;
 void setupDepthMap();
-
+bool showLightSpaceDepth = false;
 
 // inputs
 static bool isFirstPersonView = false;

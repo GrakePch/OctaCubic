@@ -2,7 +2,7 @@
 #include <array>
 #include <glm/vec3.hpp>
 
-#define DIM 96
+#define DIM 256
 
 namespace MinecraftAlter
 {

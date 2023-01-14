@@ -291,15 +291,16 @@ void drawVertices(MinecraftAlter::Player& player) {
     // Light Position Transform
     auto lightPosMtx = glm::mat4(1.0f);
     if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
+    lightPosRotZ = remainder(lightPosRotZ, 360);
     lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Render to depth map from light's POV
-    const float near_plane = 100.0f, far_plane = 500.0f;
+    const float near_plane = (float)world.worldDimMax, far_plane = 5 * (float)world.worldDimMax;
     glm::mat4 lightProjection = glm::ortho(
-        -(float)world.worldDimMax,
-        (float)world.worldDimMax,
-        -(float)world.worldDimMax,
-        (float)world.worldDimMax,
+        -(float)world.worldDimMax * .75f,
+        (float)world.worldDimMax * .75f,
+        -(float)world.worldDimMax * .9f,
+        (float)world.worldDimMax * .9f,
         near_plane, far_plane);
     glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), world.worldCenter,
                                       glm::vec3(0.0, 1.0, 0.0));
@@ -312,17 +313,18 @@ void drawVertices(MinecraftAlter::Player& player) {
     drawTerrain(terrainVAO, false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // glViewport(0, 0, windowWidth, windowHeight);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // shDebugDepth.use();
-    // shDebugDepth.setFloat("near_plane", near_plane);
-    // shDebugDepth.setFloat("far_plane", far_plane);
-    // shDebugDepth.setInt("depthMap", 0);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, depthMap);
-    // renderQuad();
-
-    // return;
+    if (showLightSpaceDepth) {
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        shDebugDepth.use();
+        shDebugDepth.setFloat("near_plane", near_plane);
+        shDebugDepth.setFloat("far_plane", far_plane);
+        shDebugDepth.setInt("depthMap", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        renderQuad();
+        return;
+    }
 
     /// Render Final Frame ///
     glViewport(0, 0, windowWidth, windowHeight);
@@ -356,7 +358,7 @@ void drawVertices(MinecraftAlter::Player& player) {
                                                              : 45.0f),
                                             (float)windowWidth / (float)windowHeight,
                                             0.1f,
-                                            500.0f);
+                                            5 * (float)world.worldDimMax);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texBlocks);
@@ -540,6 +542,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_F3 && action == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shNormal.use();
+    }
+    if (key == GLFW_KEY_F4 && action == GLFW_PRESS) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        showLightSpaceDepth = !showLightSpaceDepth;
     }
     if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
         isFirstPersonView = !isFirstPersonView;
