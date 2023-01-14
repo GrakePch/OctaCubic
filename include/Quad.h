@@ -1,6 +1,8 @@
 ﻿#ifndef MINECRAFTALTER_QUAD_H
 #define MINECRAFTALTER_QUAD_H
 
+#include <glm/glm.hpp>
+
 namespace MinecraftAlter
 {
     enum face { xPos, xNeg, yPos, yNeg, zPos, zNeg };
@@ -19,6 +21,7 @@ namespace MinecraftAlter
         void removeNegPosition();
         void renderQuad();
         float* getVertices();
+        float* getVerticesWithTrans(glm::mat4 transform) const;
     };
 }
 

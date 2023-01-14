@@ -214,22 +214,28 @@ void genWaterVertices() {
 
                 // if water face faces to water, not render
                 if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.XPos.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.XPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
                 if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.ZPos.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.ZPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
                 if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.YPos.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.YPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
                 if (x == 0 || world.world[x - 1][z][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.XNeg.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.XNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
                 if (z == 0 || world.world[x][z - 1][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.ZNeg.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.ZNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
                 if (y == 0 || world.world[x][z][y - 1] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx, unitCube.YNeg.getVertices(),
+                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                                        unitCube.YNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z);
             }
         }

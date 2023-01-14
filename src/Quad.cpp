@@ -110,4 +110,17 @@ namespace MinecraftAlter
     float* Quad::getVertices() {
         return vertices;
     }
+
+    float* Quad::getVerticesWithTrans(glm::mat4 transform) const {
+        static float result[32] = {0};
+        for (int v = 0; v < 4; ++v) {
+            glm::vec4 vertex(vertices[v * 8 + 0], vertices[v * 8 + 1], vertices[v * 8 + 2], 1);
+            vertex = transform * vertex;
+            result[v * 8 + 0] = vertex.x;
+            result[v * 8 + 1] = vertex.y;
+            result[v * 8 + 2] = vertex.z;
+            for (int i = 3; i < 8; ++i) result[v * 8 + i] = vertices[v * 8 + i];
+        }
+        return result;
+    }
 }
