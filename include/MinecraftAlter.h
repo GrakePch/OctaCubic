@@ -79,7 +79,7 @@ void genWorldVertices();
 void genWaterVertices();
 void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
                          int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
-
+void clearVerticesBuffer(float* verticesBuffer, unsigned int* indicesBuffer);
 
 // render
 void drawVertices(MinecraftAlter::Player& player);

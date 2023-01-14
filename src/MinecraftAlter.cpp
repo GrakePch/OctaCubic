@@ -265,6 +265,11 @@ void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
     ++*currQuadIdx;
 }
 
+void clearVerticesBuffer(float* verticesBuffer, unsigned int* indicesBuffer) {
+    for (int i = 0; i < VERTICES_BUFFER_SIZE; ++i) verticesBuffer[i] = 0;
+    for (int i = 0; i < INDICES_BUFFER_SIZE; ++i) indicesBuffer[i] = 0;
+}
+
 // Render
 void drawVertices(MinecraftAlter::Player& player) {
     MinecraftAlter::Quad::vertRenderCount = 0;
@@ -536,6 +541,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         world.generate();
+        clearVerticesBuffer(verticesBuff, indicesBuff);
+        clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff);
+        genWorldVertices();
+        genWaterVertices();
+        setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
+        setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
         if (player_ptr) player_ptr->generatePlayerSpawn();
     }
 }
