@@ -6,7 +6,6 @@ in vec3 fNormal;
 in vec4 fColor;
 in vec3 fNormal_model;
 in vec3 fPos_model;
-in vec2 fTexCoord;
 in vec4 fFragPosLightSpace;
 flat in int fBlockId;
 
@@ -17,9 +16,9 @@ uniform vec3 lightColor;
 uniform float ambient;
 uniform float specularStrength = 0;
 float PhongExp = 1024;
-uniform sampler2D texBlocks;
 uniform sampler2D shadowMap;
 
+uniform float waveStrength = 0;
 uniform float time = 0;
 vec3 lightDir;
 
@@ -68,7 +67,20 @@ float calcShadow(vec4 fragPosLightSpace) {
 }
 
 void main() {
-    vec3 normal_n = normalize(fNormal);
+    vec3 normal_n;
+    if (waveStrength > 0.0 && fNormal_model.y != 0.0 ) { // Generate wavy normal: exclude vertical surface
+        float normal_rotate_angle =   waveStrength * .10 * sin((.5 * fPos_model.x + .5 * fPos_model.z) * 5 + time * 5);
+        float normal_rotate_angle_2 = waveStrength * .08 * sin((.6 * fPos_model.x + .4 * fPos_model.z) * 5 + time * 2);
+        float normal_rotate_angle_3 = waveStrength * .05 * sin((.1 * fPos_model.x + .9 * fPos_model.z) * 4 + time * 7);
+        vec3 normal_addwave = mat3(transpose(inverse(view
+            * rotationMatrix(vec3(.1, 0.0, .9), normal_rotate_angle_3)
+            * rotationMatrix(vec3(.6, 0.0, .4), normal_rotate_angle_2)
+            * rotationMatrix(vec3(.5, 0.0, .5), normal_rotate_angle)
+            * model))) * fNormal_model;
+        normal_n = normalize(normal_addwave);
+    } else { // Flat normal
+        normal_n = normalize(fNormal);
+    }
     
     // Diffuse lighting
     lightDir = normalize((view * vec4(lightPos, 1.0)).xyz - fFragPos);
@@ -83,12 +95,7 @@ void main() {
 
     // Shadow
     float shadow = calcShadow(fFragPosLightSpace);
-
-    bool isBlendColor = fBlockId == 4;
-    vec3 texColor = isBlendColor 
-            ? texture(texBlocks, fTexCoord).rgb * fColor.rgb 
-            : texture(texBlocks, fTexCoord).rgb;
     
-    vec3 FragColorRGB = (ambient + (1.0 - shadow) * diffuse) * texColor + (1.0 - shadow) * specular;
+    vec3 FragColorRGB = (ambient + (1.0 - shadow) * diffuse) * fColor.rgb + (1.0 - shadow) * specular;
     FragColor = vec4(FragColorRGB, fColor.a);
 }

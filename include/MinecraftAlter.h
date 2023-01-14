@@ -55,20 +55,39 @@ static float CamValPitch = 30.0f;
 static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
+// Terrain vertices buffers
+#define VERTICES_BUFFER_SIZE 191102976
+// 96^3 blocks * 6 faces * 4 vertices * 9 attributes
+#define INDICES_BUFFER_SIZE 31850496
+// 96^3 blocks * 6 faces * 6 indices
+unsigned int terrainVAO = 0;
+unsigned int terrainVBO;
+unsigned int terrainEBO;
+float verticesBuff[VERTICES_BUFFER_SIZE] = {0};
+unsigned int indicesBuff[INDICES_BUFFER_SIZE] = {0};
+
+unsigned int terrWaterVAO = 0;
+unsigned int terrWaterVBO;
+unsigned int terrWaterEBO;
+float verticesWaterBuff[VERTICES_BUFFER_SIZE] = {0};
+unsigned int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
+void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
+                  const float* verticesBuffer, const unsigned int* indicesBuffer);
+
 // Generate terrain vertices
 void genWorldVertices();
 void genWaterVertices();
 void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
                          int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
 
-// setup buffers
-void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
-                  const float* verticesBuffer, const unsigned int* indicesBuffer);
 
 // render
 void drawVertices(MinecraftAlter::Player& player);
-void drawTerrain();
-void drawWater();
+void drawTerrain(const unsigned int& vao, bool isWater,
+                 const glm::mat4* camView,
+                 const glm::mat4* projection,
+                 const glm::mat4* lightPosMat,
+                 const glm::mat4* lightSpaceMat);
 bool isBlockOpaque(int id);
 
 // render textures

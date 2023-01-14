@@ -6,12 +6,9 @@
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
 
-#define VERTICES_BUFFER_SIZE 191102976
-// 96^3 blocks * 6 faces * 4 vertices * 9 attributes
-#define INDICES_BUFFER_SIZE 31850496
-// 96^3 blocks * 6 faces * 6 indices
 
 MinecraftAlter::Shader shader{};
+MinecraftAlter::Shader shWater{};
 MinecraftAlter::Shader shNormal{};
 MinecraftAlter::Shader shShadowMap{};
 MinecraftAlter::Shader shDebugDepth{};
@@ -20,18 +17,6 @@ MinecraftAlter::World world{};
 MinecraftAlter::Player* player_ptr = nullptr;
 
 MinecraftAlter::Cube unitCube{true};
-
-unsigned int terrainVAO = 0;
-unsigned int terrainVBO;
-unsigned int terrainEBO;
-float verticesBuff[VERTICES_BUFFER_SIZE] = {0};
-unsigned int indicesBuff[INDICES_BUFFER_SIZE] = {0};
-
-unsigned int terrWaterVAO = 0;
-unsigned int terrWaterVBO;
-unsigned int terrWaterEBO;
-float verticesWaterBuff[VERTICES_BUFFER_SIZE] = {0};
-unsigned int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
 
 
 int main() {
@@ -68,7 +53,9 @@ int main() {
     }
     // Make sure not to call any OpenGL functions until *after* we initialize our function loader
 
+    // Compile shaders
     shader.compile("src/shaders/vsh.glsl", "src/shaders/fsh.glsl");
+    shWater.compile("src/shaders/water_v.glsl", "src/shaders/water_f.glsl");
     shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
     shShadowMap.compile("src/shaders/shadowMap_v.glsl", "src/shaders/shadowMap_f.glsl");
     shDebugDepth.compile("src/shaders/debug_depth_v.glsl", "src/shaders/debug_depth_f.glsl");
@@ -138,6 +125,7 @@ int main() {
     glfwTerminate();
 }
 
+// 2D Quad for debug
 unsigned int quadVAO = 0;
 unsigned int quadVBO;
 
@@ -166,146 +154,8 @@ void renderQuad() {
     glBindVertexArray(0);
 }
 
-// Render
-void drawVertices(MinecraftAlter::Player& player) {
-    MinecraftAlter::Quad::vertRenderCount = 0;
-
-    // Light Position Transform
-    auto lightPosMtx = glm::mat4(1.0f);
-    if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
-    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    // Render to depth map from light's POV
-    const float near_plane = 100.0f, far_plane = 500.0f;
-    glm::mat4 lightProjection = glm::ortho(
-        -(float)world.worldDimMax,
-        (float)world.worldDimMax,
-        -(float)world.worldDimMax,
-        (float)world.worldDimMax,
-        near_plane, far_plane);
-    glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), world.worldCenter,
-                                      glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    shShadowMap.use();
-    shShadowMap.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-    drawTerrain();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // glViewport(0, 0, windowWidth, windowHeight);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // shDebugDepth.use();
-    // shDebugDepth.setFloat("near_plane", near_plane);
-    // shDebugDepth.setFloat("far_plane", far_plane);
-    // shDebugDepth.setInt("depthMap", 0);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, depthMap);
-    // renderQuad();
-
-    // return;
-    // View(Camera) Transform
-    glViewport(0, 0, windowWidth, windowHeight);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    shader.use();
-    CamView = glm::mat4(1.0f);
-    if (isFirstPersonView) {
-        player.updateLocation((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
-        CamView = player.rotateFacing(CamView, CursorDeltaX, CursorDeltaY, CamRotSensitivity);
-    } else {
-        // Cam z distance
-        CamView = glm::translate(CamView, {0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance});
-        if (CursorControlCam) {
-            CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
-            CamValYaw += CursorDeltaX * CamRotSensitivity;
-            if (CamValYaw >= 180) CamValYaw -= 360;
-            if (CamValYaw < -180) CamValYaw += 360;
-        }
-        CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
-        CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-        CamView = glm::translate(CamView, -world.worldCenter);
-    }
-    // Clear cursor delta value
-    CursorDeltaX = 0;
-    CursorDeltaY = 0;
-
-    // Perspective Transform
-    glm::mat4 projection = glm::perspective(glm::radians(isFirstPersonView
-                                                             ? 90.0f * (float)windowHeight / (float)windowWidth
-                                                             : 45.0f),
-                                            (float)windowWidth / (float)windowHeight,
-                                            0.1f,
-                                            500.0f);
-
-    // Link Variables to Shader Uniforms
-    MinecraftAlter::Shader::activeShader->setMat4("view", CamView);
-    MinecraftAlter::Shader::activeShader->setMat4("projection", projection);
-    MinecraftAlter::Shader::activeShader->setVec3("lightPos", lightPosMtx * glm::vec4(lightPosition, 1.0f));
-    MinecraftAlter::Shader::activeShader->setVec3("lightColor", lightColor);
-    MinecraftAlter::Shader::activeShader->setFloat("ambient", ambient);
-    MinecraftAlter::Shader::activeShader->setFloat("time", (float)glfwGetTime());
-
-    MinecraftAlter::Shader::activeShader->setInt("texBlocks", 0);
-    MinecraftAlter::Shader::activeShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-    shader.setInt("shadowMap", 1);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texBlocks);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-
-    drawTerrain();
-    drawWater();
-
-    return;
-    // Render Sun
-    glm::mat4 SunPos = glm::mat4(1.0f);
-    SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
-    SunPos = glm::scale(SunPos, glm::vec3{(float)world.worldDimMax / 4});
-    MinecraftAlter::Shader::activeShader->setMat4("model", SunPos);
-    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{1.0});
-    MinecraftAlter::Shader::activeShader->setFloat("ambient", 1);
-    MinecraftAlter::Shader::activeShader->setBool("useTexture", false);
-    unitCube.XPos.renderQuad();
-    unitCube.XNeg.renderQuad();
-    unitCube.YPos.renderQuad();
-    unitCube.YNeg.renderQuad();
-    unitCube.ZPos.renderQuad();
-    unitCube.ZNeg.renderQuad();
-}
 
 // Generate terrain vertices
-void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
-                         int* currQuadIdx, const float* arr, int blockId, int x, int y, int z) {
-    for (int i = 0; i < 4; ++i) {
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 0] = arr[i * 8 + 0] + (float)x;
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 1] = arr[i * 8 + 1] + (float)y;
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 2] = arr[i * 8 + 2] + (float)z;
-        // printf("coords: %f %f %f\n",
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 0],
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 1],
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 2]);
-        for (int val = 3; val < 8; ++val) {
-            verticesBuffer[*currQuadIdx * 36 + i * 9 + val] = arr[i * 8 + val];
-        }
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 8] = (float)blockId;
-        //printf("id: %d\n", blockId);
-    }
-    const int startIdx = *currQuadIdx * 6;
-    const int startIdxOfVertex = *currQuadIdx * 4;
-    indicesBuffer[startIdx + 0] = startIdxOfVertex + 0;
-    indicesBuffer[startIdx + 1] = startIdxOfVertex + 1;
-    indicesBuffer[startIdx + 2] = startIdxOfVertex + 2;
-    indicesBuffer[startIdx + 3] = startIdxOfVertex + 2;
-    indicesBuffer[startIdx + 4] = startIdxOfVertex + 1;
-    indicesBuffer[startIdx + 5] = startIdxOfVertex + 3;
-    //printf("%d %d %d %d %d %d\n", indicesBuff[startIdx + 0], indicesBuff[startIdx + 1], indicesBuff[startIdx + 2],
-    // indicesBuff[startIdx + 3], indicesBuff[startIdx + 4], indicesBuff[startIdx + 5]);
-    ++*currQuadIdx;
-}
-
 void genWorldVertices() {
     int currQuadIdx = 0;
     for (int x = 0; x < world.worldDimMax; ++x) {
@@ -386,28 +236,167 @@ void genWaterVertices() {
     }
 }
 
-// Draw opaque blocks
-void drawTerrain() {
-    MinecraftAlter::Shader::activeShader->setMat4("model", glm::mat4(1.0f));
-    // Remove specular lighting and wave
-    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 0);
-    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 0);
-    MinecraftAlter::Shader::activeShader->setBool("useTexture", true);
-    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.5, .9, .1, 1});
-    glBindVertexArray(terrainVAO);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-    glDrawElements(GL_TRIANGLES, INDICES_BUFFER_SIZE, GL_UNSIGNED_INT, 0);
+void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
+                         int* currQuadIdx, const float* arr, int blockId, int x, int y, int z) {
+    for (int i = 0; i < 4; ++i) {
+        verticesBuffer[*currQuadIdx * 36 + i * 9 + 0] = arr[i * 8 + 0] + (float)x;
+        verticesBuffer[*currQuadIdx * 36 + i * 9 + 1] = arr[i * 8 + 1] + (float)y;
+        verticesBuffer[*currQuadIdx * 36 + i * 9 + 2] = arr[i * 8 + 2] + (float)z;
+        // printf("coords: %f %f %f\n",
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 0],
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 1],
+        // verticesBuff[*currQuadIdx * 36 + i * 9 + 2]);
+        for (int val = 3; val < 8; ++val) {
+            verticesBuffer[*currQuadIdx * 36 + i * 9 + val] = arr[i * 8 + val];
+        }
+        verticesBuffer[*currQuadIdx * 36 + i * 9 + 8] = (float)blockId;
+        //printf("id: %d\n", blockId);
+    }
+    const int startIdx = *currQuadIdx * 6;
+    const int startIdxOfVertex = *currQuadIdx * 4;
+    indicesBuffer[startIdx + 0] = startIdxOfVertex + 0;
+    indicesBuffer[startIdx + 1] = startIdxOfVertex + 1;
+    indicesBuffer[startIdx + 2] = startIdxOfVertex + 2;
+    indicesBuffer[startIdx + 3] = startIdxOfVertex + 2;
+    indicesBuffer[startIdx + 4] = startIdxOfVertex + 1;
+    indicesBuffer[startIdx + 5] = startIdxOfVertex + 3;
+    //printf("%d %d %d %d %d %d\n", indicesBuff[startIdx + 0], indicesBuff[startIdx + 1], indicesBuff[startIdx + 2],
+    // indicesBuff[startIdx + 3], indicesBuff[startIdx + 4], indicesBuff[startIdx + 5]);
+    ++*currQuadIdx;
 }
 
-// Draw water
-void drawWater() {
-    MinecraftAlter::Shader::activeShader->setMat4("model", glm::mat4(1.0f));
-    // Add specular lighting and wave
-    MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 2);
-    MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 1);
+// Render
+void drawVertices(MinecraftAlter::Player& player) {
+    MinecraftAlter::Quad::vertRenderCount = 0;
+
+    // Light Position Transform
+    auto lightPosMtx = glm::mat4(1.0f);
+    if (lightPosInputRotZ) lightPosRotZ += (float)lightPosInputRotZ;
+    lightPosMtx = glm::rotate(lightPosMtx, glm::radians(lightPosRotZ), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    // Render to depth map from light's POV
+    const float near_plane = 100.0f, far_plane = 500.0f;
+    glm::mat4 lightProjection = glm::ortho(
+        -(float)world.worldDimMax,
+        (float)world.worldDimMax,
+        -(float)world.worldDimMax,
+        (float)world.worldDimMax,
+        near_plane, far_plane);
+    glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), world.worldCenter,
+                                      glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    shShadowMap.use();
+    drawTerrain(terrainVAO, false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glViewport(0, 0, windowWidth, windowHeight);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // shDebugDepth.use();
+    // shDebugDepth.setFloat("near_plane", near_plane);
+    // shDebugDepth.setFloat("far_plane", far_plane);
+    // shDebugDepth.setInt("depthMap", 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthMap);
+    // renderQuad();
+
+    // return;
+
+    /// Render Final Frame ///
+    glViewport(0, 0, windowWidth, windowHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // View(Camera) Transform
+    CamView = glm::mat4(1.0f);
+    if (isFirstPersonView) {
+        player.updateLocation((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
+        CamView = player.rotateFacing(CamView, CursorDeltaX, CursorDeltaY, CamRotSensitivity);
+    } else {
+        // Cam z distance
+        CamView = glm::translate(CamView, {0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance});
+        if (CursorControlCam) {
+            CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
+            CamValYaw += CursorDeltaX * CamRotSensitivity;
+            if (CamValYaw >= 180) CamValYaw -= 360;
+            if (CamValYaw < -180) CamValYaw += 360;
+        }
+        CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
+        CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+        CamView = glm::translate(CamView, -world.worldCenter);
+    }
+    // Clear cursor delta value
+    CursorDeltaX = 0;
+    CursorDeltaY = 0;
+
+    // Perspective Transform
+    glm::mat4 projection = glm::perspective(glm::radians(isFirstPersonView
+                                                             ? 90.0f * (float)windowHeight / (float)windowWidth
+                                                             : 45.0f),
+                                            (float)windowWidth / (float)windowHeight,
+                                            0.1f,
+                                            500.0f);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texBlocks);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    shader.use();
+    drawTerrain(terrainVAO, false, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    shWater.use();
+    drawTerrain(terrWaterVAO, true, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
+
+    return;
+    // Render Sun
+    glm::mat4 SunPos = glm::mat4(1.0f);
+    SunPos = glm::translate(SunPos, glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)));
+    SunPos = glm::scale(SunPos, glm::vec3{(float)world.worldDimMax / 4});
+    MinecraftAlter::Shader::activeShader->setMat4("model", SunPos);
+    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{1.0});
+    MinecraftAlter::Shader::activeShader->setFloat("ambient", 1);
     MinecraftAlter::Shader::activeShader->setBool("useTexture", false);
-    MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.2, .4, .9, .8});
-    glBindVertexArray(terrWaterVAO);
+    unitCube.XPos.renderQuad();
+    unitCube.XNeg.renderQuad();
+    unitCube.YPos.renderQuad();
+    unitCube.YNeg.renderQuad();
+    unitCube.ZPos.renderQuad();
+    unitCube.ZNeg.renderQuad();
+}
+
+void drawTerrain(const unsigned int& vao, bool isWater,
+                 const glm::mat4* camView,
+                 const glm::mat4* projection,
+                 const glm::mat4* lightPosMat,
+                 const glm::mat4* lightSpaceMat) {
+    MinecraftAlter::Shader::activeShader->setMat4("model", glm::mat4(1.0f));
+    if (camView)
+        MinecraftAlter::Shader::activeShader->setMat4("view", *camView);
+    if (projection)
+        MinecraftAlter::Shader::activeShader->setMat4("projection", *projection);
+    MinecraftAlter::Shader::activeShader->setInt("texBlocks", 0);
+    MinecraftAlter::Shader::activeShader->setInt("shadowMap", 1);
+    if (lightSpaceMat)
+        MinecraftAlter::Shader::activeShader->setMat4("lightSpaceMatrix", *lightSpaceMat);
+    if (lightPosMat)
+        MinecraftAlter::Shader::activeShader->setVec3("lightPos", *lightPosMat * glm::vec4(lightPosition, 1.0f));
+    MinecraftAlter::Shader::activeShader->setVec3("lightColor", lightColor);
+    MinecraftAlter::Shader::activeShader->setFloat("ambient", ambient);
+    MinecraftAlter::Shader::activeShader->setFloat("time", (float)glfwGetTime());
+    if (isWater) {
+        // Specular lighting and wave
+        MinecraftAlter::Shader::activeShader->setFloat("specularStrength", 2);
+        MinecraftAlter::Shader::activeShader->setFloat("waveStrength", 1);
+        MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.2, .4, .9, .8});
+    } else {
+        // No specular lighting and wave
+        MinecraftAlter::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.5, .9, .1, 1});
+    }
+
+    glBindVertexArray(vao);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
     glDrawElements(GL_TRIANGLES, INDICES_BUFFER_SIZE, GL_UNSIGNED_INT, 0);
 }
 
