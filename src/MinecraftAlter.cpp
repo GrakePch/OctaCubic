@@ -370,6 +370,9 @@ void drawVertices(MinecraftAlter::Player& player) {
     shWater.use();
     drawTerrain(terrWaterVAO, true, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
 
+    // Render Player Aiming Block
+
+    
     return;
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);

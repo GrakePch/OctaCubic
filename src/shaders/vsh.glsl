@@ -11,6 +11,7 @@ out vec3 fPos_model;
 out vec2 fTexCoord;
 out vec4 fFragPosLightSpace;
 flat out int fBlockId;
+flat out int fTexId;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -29,6 +30,23 @@ vec2 calcUV(int id, int blockRes, int textureRes, vec2 TexCoord) {
     return result;
 }
 
+int blockIdToTexId(float blockId, vec3 normal_model, vec3 pos_model) {
+    int id = int(blockId);
+    if (id == 4) { // grass block side
+        if (normal_model.y == 0) {
+            return 253;
+        }
+        return 4;
+    }
+    if (id == 6) { // snow block side
+        if (normal_model.y == 0) {
+            return 255;
+        }
+        return 6;
+    }
+    return id;
+}
+
 void main() {
     fFragPos = (view * model * vec4(aPosition, 1.0)).xyz;
     fNormal = mat3(transpose(inverse(view * model))) * aNormal;
@@ -36,7 +54,8 @@ void main() {
     fPos_model = (model * vec4(aPosition, 1.0)).xyz;
     fColor = diffuseColor;
     fBlockId = int(aBlockId);
-    fTexCoord = calcUV(int(aBlockId), blockRes, textureRes, aTexCoord);
+    fTexId = blockIdToTexId(aBlockId, aNormal, aPosition);
+    fTexCoord = calcUV(fTexId, blockRes, textureRes, aTexCoord);
     fFragPosLightSpace = lightSpaceMatrix * model * vec4(aPosition, 1.0); // for shadow mapping
     gl_Position = projection * view * model * vec4(aPosition, 1.0);
 }

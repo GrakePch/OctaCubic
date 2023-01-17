@@ -46,7 +46,7 @@ namespace MinecraftAlter
             return currSpeedUp == 0.0f && lastSpeedUp == 0.0f;
         }
 
-        void updateLocation(glm::vec3 deltaLocation) {
+        void applyNewLocation(glm::vec3 deltaLocation) {
             if (!world_ptr) {
                 location.x += deltaLocation.x;
                 location.y += deltaLocation.y;
@@ -62,7 +62,7 @@ namespace MinecraftAlter
 
             const float bias = 0.01f;
             // ^ if not use it, player will stuck in an edge of a block if walking closely along a wall
-            
+
             ////// Update location X //////
             location.x = clamp(newLocX,
                                blockHasCollision(locXI - 1, locYI, locZI)
@@ -94,7 +94,7 @@ namespace MinecraftAlter
                                        : location.x
                 );
             }
-            
+
             ////// Update Location Z //////
             location.z = clamp(newLocZ,
                                blockHasCollision(locXI, locYI, locZI - 1)
@@ -126,7 +126,7 @@ namespace MinecraftAlter
                                        : location.z
                 );
             }
-            
+
             ////// Update Location Y //////
             const float locYOld = location.y;
             location.y = clamp(newLocY,
@@ -214,8 +214,8 @@ namespace MinecraftAlter
                 )
                 + glm::vec3(0, moveDistUp, 0);
 
-            updateLocation(moveDistXYZ);
-            printf("speed up: %f\n", currSpeedUp);
+            applyNewLocation(moveDistXYZ);
+            // printf("speed up: %f\n", currSpeedUp);
         }
 
         void jump() {
@@ -249,6 +249,14 @@ namespace MinecraftAlter
                     break;
             location.y = static_cast<float>(surfaceY);
             return true;
+        }
+
+        glm::ivec3 getSteppingBlock() const {
+            return glm::ivec3{
+                static_cast<int>(floor(location.x)),
+                static_cast<int>(floor(location.y)),
+                static_cast<int>(floor(location.z))
+            };
         }
     };
 }

@@ -6,16 +6,16 @@ namespace MinecraftAlter
 {
     float quadXPos[] = {
         // positions         // normals         // texture Coords
-        +1.0f, -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        +1.0f, -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
         +1.0f, +1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
         +1.0f, -1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        +1.0f, +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        +1.0f, +1.0f, -1.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
     };
     float quadXNeg[] = {
         // positions         // normals         // texture Coords
         -1.0f, -1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        -1.0f, +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, +1.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
         -1.0f, +1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
     };
     float quadYPos[] = {

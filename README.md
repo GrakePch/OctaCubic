@@ -60,14 +60,12 @@ Used libraries: GLFW, Glad, glm, stb.
 
 ## To-do
 
+- [ ] Rework sun
 - [ ] Light intensity changes with sun position
 - [ ] A bigger world (procedurally loaded and unloaded chunks)
 - [ ] Screen-space reflection (for the water)
 - [ ] Ambient occlusion
 - [ ] Anti-aliasing
-- [ ] Texturing
-  - [x] Basic
-  - [ ] Multiple textures for one block
 - [ ] Controllable player
   - [x] Movements
   - [x] Collision
@@ -75,6 +73,9 @@ Used libraries: GLFW, Glad, glm, stb.
 - [x] Performance improvement
 - [x] Shadow Mapping (use depth map)
 - [x] Sky color changes with sun position
+- [x] Texturing
+  - [x] Basic
+  - [x] Multiple textures for one block
 
 ## Implementation
 

@@ -9,6 +9,7 @@ in vec3 fPos_model;
 in vec2 fTexCoord;
 in vec4 fFragPosLightSpace;
 flat in int fBlockId;
+flat in int fTexId;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -19,6 +20,8 @@ uniform float specularStrength = 0;
 float PhongExp = 1024;
 uniform sampler2D texBlocks;
 uniform sampler2D shadowMap;
+uniform int blockRes = 16;
+uniform int textureRes = 256;
 
 uniform float time = 0;
 vec3 lightDir;
@@ -84,10 +87,18 @@ void main() {
     // Shadow
     float shadow = calcShadow(fFragPosLightSpace);
 
-    bool isBlendColor = fBlockId == 4;
-    vec3 texColor = isBlendColor 
+    bool isBlendColor = fTexId == 4;
+    vec3 texColor;
+    if (fTexId == 253) {// if is grass block side
+        vec4 overlayColor = texture(texBlocks, fTexCoord + vec2(float(blockRes) / textureRes, 0));
+        texColor = texture(texBlocks, fTexCoord).rgb * (1 - overlayColor.a)
+                     + overlayColor.rgb * fColor.rgb * overlayColor.a;
+    } else {
+        texColor = isBlendColor 
             ? texture(texBlocks, fTexCoord).rgb * fColor.rgb 
             : texture(texBlocks, fTexCoord).rgb;
+
+    }
     
     vec3 FragColorRGB = (ambient + (1.0 - shadow) * diffuse) * texColor + (1.0 - shadow) * specular;
     FragColor = vec4(FragColorRGB, fColor.a);
