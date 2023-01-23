@@ -15,11 +15,8 @@ Main Features:
 
 Used libraries: GLFW, Glad, glm, stb.
 
-![Current Progress](./images/230108.png?raw=true)
+![Current Progress](./images/230116.png?raw=true)
 *Fig: Current Progress*
-
-![First Person View](./images/230108_fpv.png?raw=true)
-*Fig: First Person View*
 
 ## Controls
 
@@ -81,13 +78,13 @@ Used libraries: GLFW, Glad, glm, stb.
 
 ### Terrain Generation
 
-The information of the world is stored in a 72\*72\*72 int multi-dimensional array. The int is the id of different types of blocks. Currently, the id only determines the color of the cubes. A map from int to vec3 tells the program how to color the cubes.
+The information of the world is stored in a 256\*256\*256 int multi-dimensional array. The int is the id of different types of blocks. Currently, the id only determines the color of the cubes. A map from int to vec3 tells the program how to color the cubes.
 
 As the program start, a terrain generation code is run. The program loop over the x-z plane (the horizontal plane) and do Perlin noise calculation to get the altitude of the ground surface. 
 
 Then, assign the color of cubes to make it looks like terrain. If the Altitude ≤ 25, color the surface as sand, if 25 < Altitude < 35, color the surface as grass, above that, color the surface as snow. Above each surface, if the y ≤ 23, filled with water blocks, else filled with air (not rendered later).
 
-### Rendering
+### Rendering (outdated)
 
 When rendering each frame, it updates the background color according to the light source position, which mimics the sky. Then, it calculates the camera transform based on the global variables that store the camera position. The variable is influenced by keyboard input (with functions provided by GLFW). Similarly, light position transform is also handled here.
 
