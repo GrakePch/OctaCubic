@@ -234,6 +234,12 @@
     <None Include="src\shaders\vsh.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="src\shaders\coord_f.glsl" />
+    <Content Include="src\shaders\coord_v.glsl" />
+    <Content Include="src\shaders\frameBuffer_f.glsl" />
+    <Content Include="src\shaders\frameBuffer_v.glsl" />
+    <Content Include="src\shaders\highlightBlock_f.glsl" />
+    <Content Include="src\shaders\highlightBlock_v.glsl" />
     <Content Include="src\shaders\normal_f.glsl" />
     <Content Include="src\shaders\normal_v.glsl" />
   </ItemGroup>

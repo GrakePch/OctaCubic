@@ -91,6 +91,8 @@ void drawTerrain(const unsigned int& vao, bool isWater,
                  const glm::mat4* lightPosMat,
                  const glm::mat4* lightSpaceMat);
 bool isBlockOpaque(int id);
+// Update Sky color based on the rotation of lightPosition
+void updateSkyColor();
 
 // render textures
 int texBlocksDimX, texBlocksDimY, texBlocksNrChannels;
@@ -104,6 +106,13 @@ const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 unsigned int depthMap;
 void setupDepthMap();
 bool showLightSpaceDepth = false;
+
+// block coord map
+unsigned int blockCoordMapFBO;
+unsigned int blockCoordMap;
+unsigned int blockCoordMapRBO;
+void setupBlockCoordMap();
+bool showBlockCoord = false;
 
 // inputs
 static bool isFirstPersonView = false;

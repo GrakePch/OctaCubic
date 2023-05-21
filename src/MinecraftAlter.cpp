@@ -5,6 +5,7 @@
 
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
+#define NUM_OF_VERT_S_ATTR 12
 
 
 MinecraftAlter::Shader shader{};
@@ -12,6 +13,9 @@ MinecraftAlter::Shader shWater{};
 MinecraftAlter::Shader shNormal{};
 MinecraftAlter::Shader shShadowMap{};
 MinecraftAlter::Shader shDebugDepth{};
+MinecraftAlter::Shader shCoord{};
+MinecraftAlter::Shader shDebugFrameBuffer{};
+MinecraftAlter::Shader shHighlightBlock{};
 
 MinecraftAlter::World world{};
 MinecraftAlter::Player* player_ptr = nullptr;
@@ -59,7 +63,10 @@ int main() {
     shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
     shShadowMap.compile("src/shaders/shadowMap_v.glsl", "src/shaders/shadowMap_f.glsl");
     shDebugDepth.compile("src/shaders/debug_depth_v.glsl", "src/shaders/debug_depth_f.glsl");
-
+    shCoord.compile("src/shaders/coord_v.glsl", "src/shaders/coord_f.glsl");
+    shDebugFrameBuffer.compile("src/shaders/frameBuffer_v.glsl", "src/shaders/frameBuffer_f.glsl");
+    shHighlightBlock.compile("src/shaders/highlightBlock_v.glsl", "src/shaders/highlightBlock_f.glsl");
+    
     // Set Inputs
     setInputs(window);
 
@@ -90,6 +97,7 @@ int main() {
 
     genWorldVertices();
     setupDepthMap();
+    setupBlockCoordMap();
     setupTextures();
     setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
     setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
@@ -98,21 +106,6 @@ int main() {
         displayFPS(window, &player);
 
         // Clear screen
-        // Update Sky color based on the rotation of lightPosition
-        const float lightPosRotZ_0_180 = remainder(lightPosRotZ + 180.0f, 360);
-        const float timeOfDay = lightPosRotZ_0_180 / 360.0f * 24;
-        for (int i = 0; i < (int)(sizeof(skyColorMap) / sizeof(float) / 4 - 1); ++i) {
-            const float lastPivot = skyColorMap[(ptrdiff_t)i * 4];
-            const float nextPivot = skyColorMap[(ptrdiff_t)(i + 1) * 4];
-            if (timeOfDay > lastPivot && timeOfDay < nextPivot) {
-                const float timePortion = (timeOfDay - lastPivot) / (nextPivot - lastPivot);
-                glClearColor(
-                    interpolate(skyColorMap[i * 4 + 1], skyColorMap[(i + 1) * 4 + 1], timePortion),
-                    interpolate(skyColorMap[i * 4 + 2], skyColorMap[(i + 1) * 4 + 2], timePortion),
-                    interpolate(skyColorMap[i * 4 + 3], skyColorMap[(i + 1) * 4 + 3], timePortion),
-                    1.0f);
-            }
-        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawVertices(player);
@@ -250,18 +243,27 @@ void genWaterVertices() {
 
 void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
                          int* currQuadIdx, const float* arr, int blockId, int x, int y, int z) {
+    
     for (int i = 0; i < 4; ++i) {
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 0] = arr[i * 8 + 0] + (float)x;
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 1] = arr[i * 8 + 1] + (float)y;
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 2] = arr[i * 8 + 2] + (float)z;
+        /// vec3 vertex's Position
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 0] = arr[i * 8 + 0] + (float)x;
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 1] = arr[i * 8 + 1] + (float)y;
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 2] = arr[i * 8 + 2] + (float)z;
         // printf("coords: %f %f %f\n",
         // verticesBuff[*currQuadIdx * 36 + i * 9 + 0],
         // verticesBuff[*currQuadIdx * 36 + i * 9 + 1],
         // verticesBuff[*currQuadIdx * 36 + i * 9 + 2]);
+        
+        /// vec3 vertex's Normal & vec2 vertex's Texture Coordinates
         for (int val = 3; val < 8; ++val) {
-            verticesBuffer[*currQuadIdx * 36 + i * 9 + val] = arr[i * 8 + val];
+            verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + val] = arr[i * 8 + val];
         }
-        verticesBuffer[*currQuadIdx * 36 + i * 9 + 8] = (float)blockId;
+        /// float vertex's Block Id
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 8] = (float)blockId;
+        /// vec3 vertex's Block Coordinates
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 9] = (float)x;
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 10] = (float)y;
+        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 11] = (float)z;
         //printf("id: %d\n", blockId);
         worldVertCount++;
     }
@@ -360,18 +362,65 @@ void drawVertices(MinecraftAlter::Player& player) {
                                             0.1f,
                                             5 * (float)world.worldDimMax);
 
+
+    glBindFramebuffer(GL_FRAMEBUFFER, blockCoordMapFBO);
+    glClearColor(1.0,1.0,1.0,1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    shCoord.use();
+    shCoord.setFloat("worldMaxDim", (float)world.worldDimMax);
+    shCoord.setVec3("playerCoord", player_ptr->location);
+    drawTerrain(terrainVAO, false, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    
+    unsigned char pixel[4];
+    glReadPixels(windowWidth / 2, windowHeight / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+    printf("x y z: %f %f %f\n", (float)pixel[0], (float)pixel[1], (float)pixel[2]);
+    // player_ptr->AimingAtBlockCoord.x = floor(player_ptr->location.x);
+    // player_ptr->AimingAtBlockCoord.y = floor(player_ptr->location.y);
+    // player_ptr->AimingAtBlockCoord.z = floor(player_ptr->location.z);
+    player_ptr->AimingAtBlockCoord.x = (float)(pixel[0] - 16 + (int)floor(player_ptr->location.x));
+    player_ptr->AimingAtBlockCoord.y = (float)(pixel[1] - 16 + (int)floor(player_ptr->location.y));
+    player_ptr->AimingAtBlockCoord.z = (float)(pixel[2] - 16 + (int)floor(player_ptr->location.z));
+    player_ptr->isAimingAtSomeBlock = player_ptr->AimingAtBlockCoord.x < world.worldDimMax;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    if (showBlockCoord) {
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClear(GL_COLOR_BUFFER_BIT);
+        shDebugFrameBuffer.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, blockCoordMap);
+        renderQuad();
+        return;
+    }
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texBlocks);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-
+    
+    updateSkyColor();
+    
     shader.use();
     drawTerrain(terrainVAO, false, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
     shWater.use();
     drawTerrain(terrWaterVAO, true, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
 
     // Render Player Aiming Block
-
+    shHighlightBlock.use();
+    glm::mat4 aimingBlockModel = glm::mat4{1.0f};
+    aimingBlockModel = translate(aimingBlockModel, player_ptr->AimingAtBlockCoord);
+    aimingBlockModel = translate(aimingBlockModel, glm::vec3{-.005f});
+    aimingBlockModel = glm::scale(aimingBlockModel, glm::vec3{1.01f});
+    shHighlightBlock.setMat4("model", aimingBlockModel);
+    shHighlightBlock.setMat4("view", CamView);
+    shHighlightBlock.setMat4("projection", projection);
+    unitCube.XPos.renderQuad();
+    unitCube.XNeg.renderQuad();
+    unitCube.YPos.renderQuad();
+    unitCube.YNeg.renderQuad();
+    unitCube.ZPos.renderQuad();
+    unitCube.ZNeg.renderQuad();
     
     return;
     // Render Sun
@@ -428,6 +477,24 @@ bool isBlockOpaque(int id) {
     return id != 0 && id != 10;
 }
 
+void updateSkyColor() {
+    const float lightPosRotZ_0_180 = remainder(lightPosRotZ + 180.0f, 360);
+    const float timeOfDay = lightPosRotZ_0_180 / 360.0f * 24;
+    for (int i = 0; i < (int)(sizeof(skyColorMap) / sizeof(float) / 4 - 1); ++i) {
+        const float lastPivot = skyColorMap[(ptrdiff_t)i * 4];
+        const float nextPivot = skyColorMap[(ptrdiff_t)(i + 1) * 4];
+        if (timeOfDay > lastPivot && timeOfDay < nextPivot) {
+            const float timePortion = (timeOfDay - lastPivot) / (nextPivot - lastPivot);
+            glClearColor(
+                interpolate(skyColorMap[i * 4 + 1], skyColorMap[(i + 1) * 4 + 1], timePortion),
+                interpolate(skyColorMap[i * 4 + 2], skyColorMap[(i + 1) * 4 + 2], timePortion),
+                interpolate(skyColorMap[i * 4 + 3], skyColorMap[(i + 1) * 4 + 3], timePortion),
+                1.0f);
+        }
+    }
+}
+
+
 void setupTextures() {
     glGenTextures(1, &texBlocks);
     glActiveTexture(GL_TEXTURE0);
@@ -464,14 +531,21 @@ void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTICES_BUFFER_SIZE * sizeof(float), verticesBuffer, GL_STATIC_DRAW);
     // Set the vertex attributes pointers
+    /// vec3 vertex's Position
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)0);
+    /// vec3 vertex's Normal
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(3 * sizeof(float)));
+    /// vec2 vertex's Texture Coordinates
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(6 * sizeof(float)));
+    /// float vertex's Block Id
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(8 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(8 * sizeof(float)));
+    /// vec3 vertex's Block Coordinates
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(9 * sizeof(float)));
     // Element Buffer Objects
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -493,6 +567,28 @@ void setupDepthMap() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void setupBlockCoordMap() {
+    glGenFramebuffers(1, &blockCoordMapFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, blockCoordMapFBO);
+    
+    glGenTextures(1, &blockCoordMap);
+    glBindTexture(GL_TEXTURE_2D, blockCoordMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
+    nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blockCoordMap, 0);
+
+    // bind Render buffer to enable depth testing
+    glGenRenderbuffers(1, &blockCoordMapRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, blockCoordMapRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, blockCoordMapRBO);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -560,6 +656,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             CursorControlCam = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
+    }
+    if (key == GLFW_KEY_F6 && action == GLFW_PRESS) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        showBlockCoord = !showBlockCoord;
     }
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
@@ -641,7 +741,14 @@ void displayFPS(GLFWwindow* window, const MinecraftAlter::Player* player_ptr_loc
             + "Player @ "
             + dToDecimalStr((double)player_ptr_local->location.x) + " "
             + dToDecimalStr((double)player_ptr_local->location.y) + " "
-            + dToDecimalStr((double)player_ptr_local->location.z);
+            + dToDecimalStr((double)player_ptr_local->location.z) + " | "
+            + "Aiming At Block "
+            + (player_ptr_local->isAimingAtSomeBlock
+                   ? std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.x)) + " "
+                   + std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.y)) + " "
+                   + std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.z)) + " "
+                   : "Null"
+            );
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter
