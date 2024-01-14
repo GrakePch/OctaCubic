@@ -79,9 +79,6 @@ unsigned int worldVertCount = 0;
 void genWorldVertices();
 void genTerrainVertices();
 void genWaterVertices();
-void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
-                         int* currQuadIdx, const float* arr, int blockId, int x, int y, int z);
-void clearVerticesBuffer(float* verticesBuffer, unsigned int* indicesBuffer);
 
 // render
 void drawVertices(OctaCubic::Player& player);
@@ -139,18 +136,5 @@ static double FPS = 0.0;
 static double Second = 0.0;
 static unsigned int FrameCounter = 0;
 void displayFPS(GLFWwindow* window, const OctaCubic::Player* player_ptr_local);
-std::string dToDecimalStr(double d);
-
-// interpolate
-inline float interpolate(float f1, float f2, float p) {
-    return f1 + p * (f2 - f1);
-}
-
-inline float remainder(float dividend, int divisor) {
-    if (dividend < 0) dividend += static_cast<float>(divisor);
-    const int dividendInt = static_cast<int>(dividend);
-    const float decimal = dividend - round(dividend);
-    return static_cast<float>(dividendInt % divisor) + decimal;
-}
 
 #endif

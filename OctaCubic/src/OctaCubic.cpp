@@ -2,6 +2,9 @@
 #include "Shader.h"
 #include "Cube.h"
 #include "World.h"
+#include "debugQuad.h"
+#include "utils.h"
+#include "utils_render.h"
 
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
@@ -117,35 +120,6 @@ int main() {
     glfwTerminate();
 }
 
-// 2D Quad for debug
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-
-void renderQuad() {
-    if (quadVAO == 0) {
-        float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        };
-        // setup plane VAO
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    }
-    glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
-}
-
 
 // Generate world vertices
 void genWorldVertices() {
@@ -175,23 +149,23 @@ void genTerrainVertices() {
                     continue;
 
                 if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.XPos.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XPos.getVertices(), currId, x,
+                                        y, z, worldVertCount);
                 if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZPos.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZPos.getVertices(), currId, x,
+                                        y, z, worldVertCount);
                 if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.YPos.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YPos.getVertices(), currId, x,
+                                        y, z, worldVertCount);
                 if (x == 0 || !isBlockOpaque(world.world[x - 1][z][y]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.XNeg.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XNeg.getVertices(), currId, x,
+                                        y, z, worldVertCount);
                 if (z == 0 || !isBlockOpaque(world.world[x][z - 1][y]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZNeg.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZNeg.getVertices(), currId, x,
+                                        y, z, worldVertCount);
                 if (y == 0 || !isBlockOpaque(world.world[x][z][y - 1]))
-                    overwriteVertexBuff(verticesBuff, indicesBuff, &currQuadIdx, unitCube.YNeg.getVertices(), currId, x,
-                                        y, z);
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YNeg.getVertices(), currId, x,
+                                        y, z, worldVertCount);
             }
         }
     }
@@ -213,78 +187,34 @@ void genWaterVertices() {
 
                 // if water face faces to water, not render
                 if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.XPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
                 if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.ZPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
                 if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.YPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
                 if (x == 0 || world.world[x - 1][z][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.XNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
                 if (z == 0 || world.world[x][z - 1][y] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.ZNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
                 if (y == 0 || world.world[x][z][y - 1] != 10)
-                    overwriteVertexBuff(verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.YNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z);
+                                        currId, x, y, z, worldVertCount);
             }
         }
     }
 }
 
-void overwriteVertexBuff(float* verticesBuffer, unsigned int* indicesBuffer,
-                         int* currQuadIdx, const float* arr, int blockId, int x, int y, int z) {
-    
-    for (int i = 0; i < 4; ++i) {
-        /// vec3 vertex's Position
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 0] = arr[i * 8 + 0] + (float)x;
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 1] = arr[i * 8 + 1] + (float)y;
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 2] = arr[i * 8 + 2] + (float)z;
-        // printf("coords: %f %f %f\n",
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 0],
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 1],
-        // verticesBuff[*currQuadIdx * 36 + i * 9 + 2]);
-        
-        /// vec3 vertex's Normal & vec2 vertex's Texture Coordinates
-        for (int val = 3; val < 8; ++val) {
-            verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + val] = arr[i * 8 + val];
-        }
-        /// float vertex's Block Id
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 8] = (float)blockId;
-        /// vec3 vertex's Block Coordinates
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 9] = (float)x;
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 10] = (float)y;
-        verticesBuffer[*currQuadIdx * NUM_OF_VERT_S_ATTR * 4 + i * NUM_OF_VERT_S_ATTR + 11] = (float)z;
-        //printf("id: %d\n", blockId);
-        worldVertCount++;
-    }
-    const int startIdx = *currQuadIdx * 6;
-    const int startIdxOfVertex = *currQuadIdx * 4;
-    indicesBuffer[startIdx + 0] = startIdxOfVertex + 0;
-    indicesBuffer[startIdx + 1] = startIdxOfVertex + 1;
-    indicesBuffer[startIdx + 2] = startIdxOfVertex + 2;
-    indicesBuffer[startIdx + 3] = startIdxOfVertex + 2;
-    indicesBuffer[startIdx + 4] = startIdxOfVertex + 1;
-    indicesBuffer[startIdx + 5] = startIdxOfVertex + 3;
-    //printf("%d %d %d %d %d %d\n", indicesBuff[startIdx + 0], indicesBuff[startIdx + 1], indicesBuff[startIdx + 2],
-    // indicesBuff[startIdx + 3], indicesBuff[startIdx + 4], indicesBuff[startIdx + 5]);
-    ++*currQuadIdx;
-}
-
-void clearVerticesBuffer(float* verticesBuffer, unsigned int* indicesBuffer) {
-    worldVertCount = 0;
-    for (int i = 0; i < VERTICES_BUFFER_SIZE; ++i) verticesBuffer[i] = 0;
-    for (int i = 0; i < INDICES_BUFFER_SIZE; ++i) indicesBuffer[i] = 0;
-}
 
 // Render
 void drawVertices(OctaCubic::Player& player) {
@@ -664,8 +594,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         world.generate();
-        clearVerticesBuffer(verticesBuff, indicesBuff);
-        clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff);
+        worldVertCount = 0;
+        clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+        clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
         genWorldVertices();
         setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
         setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
@@ -755,9 +686,4 @@ void displayFPS(GLFWwindow* window, const OctaCubic::Player* player_ptr_local) {
         timePrev = timeCurr;
         FrameCounter = 0;
     }
-}
-
-std::string dToDecimalStr(double d) {
-    const std::string tempStr = std::to_string(d);
-    return tempStr.substr(0, tempStr.find('.') + 2);
 }
