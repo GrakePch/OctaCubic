@@ -20,6 +20,6 @@ namespace OctaCubic
         void removeNegPosition();
         void renderQuad();
         float* getVertices();
-        float* getVerticesWithTrans(glm::mat4 transform) const;
+        float* getVerticesWithTrans(const glm::mat4& transform) const;
     };
 }

@@ -56,8 +56,8 @@ static float CamValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
 // Terrain vertices buffers
-#define VERTICES_BUFFER_SIZE 7077888
-// 32^3 blocks * 6 faces * 4 vertices * 9 attributes
+#define VERTICES_BUFFER_SIZE 9437184
+// 32^3 blocks * 6 faces * 4 vertices * 12 attributes
 #define INDICES_BUFFER_SIZE 1179648
 // 32^3 blocks * 6 faces * 6 indices
 unsigned int terrainVAO = 0;

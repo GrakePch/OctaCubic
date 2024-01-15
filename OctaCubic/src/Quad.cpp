@@ -111,7 +111,7 @@ namespace OctaCubic
         return vertices;
     }
 
-    float* Quad::getVerticesWithTrans(glm::mat4 transform) const {
+    float* Quad::getVerticesWithTrans(const glm::mat4& transform) const {
         static float result[32] = {0};
         for (int v = 0; v < 4; ++v) {
             glm::vec4 vertex(vertices[v * 8 + 0], vertices[v * 8 + 1], vertices[v * 8 + 2], 1);
