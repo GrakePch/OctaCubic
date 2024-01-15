@@ -120,13 +120,6 @@ static bool CursorControlCam = false;
 static float CursorDeltaX = 0;
 static float CursorDeltaY = 0;
 static float CamRotSensitivity = .2f;
-void setInputs(GLFWwindow* window);
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-void mouseCallback(GLFWwindow* window, int button, int action, int mods);
-void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
-void cursorPosCallback(GLFWwindow* window, double xPos, double yPos);
-void windowSizeCallback(GLFWwindow* window, int width, int height);
-void toggleFullScreen(GLFWwindow* window);
 
 // FPS displaying
 static double timePrev = 0.0;

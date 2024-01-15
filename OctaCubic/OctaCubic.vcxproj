@@ -504,6 +504,7 @@
   <ItemGroup>
     <ClInclude Include="include\Cube.h" />
     <ClInclude Include="include\debugQuad.h" />
+    <ClInclude Include="include\inputs.h" />
     <ClInclude Include="include\OctaCubic.h" />
     <ClInclude Include="include\perlin.h" />
     <ClInclude Include="include\Player.h" />
