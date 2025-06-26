@@ -71,7 +71,8 @@ unsigned int terrWaterVBO;
 unsigned int terrWaterEBO;
 float verticesWaterBuff[VERTICES_BUFFER_SIZE] = {0};
 unsigned int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
-void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
+void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo);
+void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned int& ebo,
                   const float* verticesBuffer, const unsigned int* indicesBuffer);
 
 // Generate world vertices

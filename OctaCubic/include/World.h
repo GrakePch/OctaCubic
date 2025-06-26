@@ -2,7 +2,7 @@
 #include <array>
 #include <glm/vec3.hpp>
 
-#define DIM 200
+#define DIM 128
 
 namespace OctaCubic
 {

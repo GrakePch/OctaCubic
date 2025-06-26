@@ -87,8 +87,8 @@ inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
         clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
         clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
         genWorldVertices();
-        setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
-        setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+        bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
+        bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
         if (player_ptr) player_ptr->generatePlayerSpawn();
     }
 }

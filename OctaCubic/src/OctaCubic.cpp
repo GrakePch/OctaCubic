@@ -99,12 +99,15 @@ int main() {
     player.world_ptr = &world;
     if (!player.generatePlayerSpawn()) { return -1; }
 
-    genWorldVertices();
     setupDepthMap();
     setupBlockCoordMap();
     setupTextures();
-    setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
-    setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+    setupBuffers(terrainVAO, terrainVBO, terrainEBO);
+    setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO);
+    
+    genWorldVertices();
+    bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
+    bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
 
     while (!glfwWindowShouldClose(window)) {
         displayFPS(window, &player);
@@ -137,8 +140,8 @@ int main() {
             clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
             clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
             genWorldVertices();
-            setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
-            setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+            bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
+            bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
         }
     }
 
@@ -468,15 +471,13 @@ void setupTextures() {
     shader.setInt("textureRes", texBlocksDimX);
 }
 
-void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
-                  const float* verticesBuffer, const unsigned int* indicesBuffer) {
+void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo) {
     // setup plane's Vertex Array Object
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     // Copy the vertices array in a vertex buffer for OpenGL to use
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, VERTICES_BUFFER_SIZE * sizeof(float), verticesBuffer, GL_STATIC_DRAW);
     // Set the vertex attributes pointers
     /// vec3 vertex's Position
     glEnableVertexAttribArray(0);
@@ -495,6 +496,13 @@ void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo,
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(9 * sizeof(float)));
     // Element Buffer Objects
     glGenBuffers(1, &ebo);
+}
+
+void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned int& ebo,
+                  const float* verticesBuffer, const unsigned int* indicesBuffer) {
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, VERTICES_BUFFER_SIZE * sizeof(float), verticesBuffer, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES_BUFFER_SIZE * sizeof(unsigned int), indicesBuffer, GL_STATIC_DRAW);
 }
