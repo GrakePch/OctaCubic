@@ -6,10 +6,11 @@ This is a project made in C++ with OpenGL. The goal is to create a small scene t
 Main Features:
 -	Terrain Generation
 -	Blinn-Phone lighting model
-- **[New] Shadow Mapping**
+-   Shadow Mapping
 -	Simple wave simulation
-- **[New] Player Movement**
-- **[New] Player Collision**
+-   Player Movement
+-   Player Collision
+- **[New] Block placing & destroying**
 -	Controllable Sunlight position
 -	Controllable Orbiting Camera
 
@@ -46,6 +47,8 @@ Used libraries: GLFW, Glad, glm, stb.
 | Mouse | Operation |
 | ----- | --- |
 | Move | Look around |
+| LMB | Destory block |
+| RMB | Place block above the aiming block |
 
 | Key | Operation |
 | --- | --- |
@@ -66,7 +69,8 @@ Used libraries: GLFW, Glad, glm, stb.
 - [ ] Controllable player
   - [x] Movements
   - [x] Collision
-  - [ ] Block placing & destroying
+  - [x] Block placing & destroying
+  - [ ] Block placing on the block face
 - [x] Performance improvement
 - [x] Shadow Mapping (use depth map)
 - [x] Sky color changes with sun position

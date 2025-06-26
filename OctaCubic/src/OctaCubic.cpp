@@ -116,6 +116,30 @@ int main() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+        mouseButtonLeftPressDown = mouseButtonLeftPressed && !mouseButtonLeftPressedPrev;
+        mouseButtonLeftPressedPrev = mouseButtonLeftPressed;
+        mouseButtonRightPressDown = mouseButtonRightPressed && !mouseButtonRightPressedPrev;
+        mouseButtonRightPressedPrev = mouseButtonRightPressed;
+
+        // Destroy & place block
+        const int aX = static_cast<int>(player_ptr->AimingAtBlockCoord.x);
+        const int aY = static_cast<int>(player_ptr->AimingAtBlockCoord.y);
+        const int aZ = static_cast<int>(player_ptr->AimingAtBlockCoord.z);
+        bool blockChanged = false;
+        if (mouseButtonLeftPressDown) {
+            blockChanged = world.setBlockId(aX, aY, aZ, 0) >= 0;
+        }
+        if (mouseButtonRightPressDown) {
+            blockChanged = world.setBlockId(aX, aY+1, aZ, 2) >= 0;
+        }
+        if (blockChanged) {
+            worldVertCount = 0;
+            clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+            clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+            genWorldVertices();
+            setupBuffers(terrainVAO, terrainVBO, terrainEBO, verticesBuff, indicesBuff);
+            setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+        }
     }
 
     glfwTerminate();
@@ -135,7 +159,7 @@ void genTerrainVertices() {
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
-                int currId = world.world[x][z][y];
+                int currId = world.getBlockId(x, y, z);
                 // skip air block
                 if (!currId) continue;
                 // skip water
@@ -144,27 +168,27 @@ void genTerrainVertices() {
                 if (x != 0 && x != world.worldDimX - 1 &&
                     y != 0 && y != world.worldDimY - 1 &&
                     z != 0 && z != world.worldDimZ - 1 &&
-                    isBlockOpaque(world.world[x + 1][z][y]) && isBlockOpaque(world.world[x - 1][z][y]) &&
-                    isBlockOpaque(world.world[x][z + 1][y]) && isBlockOpaque(world.world[x][z - 1][y]) &&
-                    isBlockOpaque(world.world[x][z][y + 1]) && isBlockOpaque(world.world[x][z][y - 1]))
+                    world.isBlockOpaqueAtCoord(x + 1, y, z) && world.isBlockOpaqueAtCoord(x - 1, y, z) &&
+                    world.isBlockOpaqueAtCoord(x, y, z + 1) && world.isBlockOpaqueAtCoord(x, y, z - 1) &&
+                    world.isBlockOpaqueAtCoord(x, y + 1, z) && world.isBlockOpaqueAtCoord(x, y - 1, z))
                     continue;
 
-                if (x == world.worldDimX - 1 || !isBlockOpaque(world.world[x + 1][z][y]))
+                if (x == world.worldDimX - 1 || !world.isBlockOpaqueAtCoord(x + 1, y, z))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
-                if (z == world.worldDimZ - 1 || !isBlockOpaque(world.world[x][z + 1][y]))
+                if (z == world.worldDimZ - 1 || !world.isBlockOpaqueAtCoord(x, y, z + 1))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
-                if (y == world.worldDimY - 1 || !isBlockOpaque(world.world[x][z][y + 1]))
+                if (y == world.worldDimY - 1 || !world.isBlockOpaqueAtCoord(x, y + 1, z))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
-                if (x == 0 || !isBlockOpaque(world.world[x - 1][z][y]))
+                if (x == 0 || !world.isBlockOpaqueAtCoord(x - 1, y, z))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
-                if (z == 0 || !isBlockOpaque(world.world[x][z - 1][y]))
+                if (z == 0 || !world.isBlockOpaqueAtCoord(x, y, z - 1))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
-                if (y == 0 || !isBlockOpaque(world.world[x][z][y - 1]))
+                if (y == 0 || !world.isBlockOpaqueAtCoord(x, y - 1, z))
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
             }
@@ -177,37 +201,37 @@ void genWaterVertices() {
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
             for (int y = 0; y < world.worldDimMax; ++y) {
-                int currId = world.world[x][z][y];
+                int currId = world.getBlockId(x, y, z);
                 // skip not water
                 if (currId != 10) continue;
 
                 // If it is water surface, shrink height to pre-set value
                 glm::mat4 CubePos = glm::mat4(1.0f);
-                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
+                if (y == world.worldDimY - 1 || world.getBlockId(x, y + 1, z) != 10)
                     CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
 
                 // if water face faces to water, not render
-                if (x == world.worldDimX - 1 || world.world[x + 1][z][y] != 10)
+                if (x == world.worldDimX - 1 || world.getBlockId(x + 1, y, z) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.XPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
-                if (z == world.worldDimZ - 1 || world.world[x][z + 1][y] != 10)
+                if (z == world.worldDimZ - 1 || world.getBlockId(x, y, z + 1) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.ZPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
-                if (y == world.worldDimY - 1 || world.world[x][z][y + 1] != 10)
+                if (y == world.worldDimY - 1 || world.getBlockId(x, y + 1, z) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.YPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
-                if (x == 0 || world.world[x - 1][z][y] != 10)
+                if (x == 0 || world.getBlockId(x - 1, y, z) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.XNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
-                if (z == 0 || world.world[x][z - 1][y] != 10)
+                if (z == 0 || world.getBlockId(x, y, z - 1) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.ZNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
-                if (y == 0 || world.world[x][z][y - 1] != 10)
+                if (y == 0 || world.getBlockId(x, y - 1, z) != 10)
                     overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
                                         unitCube.YNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
@@ -305,10 +329,6 @@ void drawVertices(OctaCubic::Player& player) {
     
     unsigned char pixel[4];
     glReadPixels(windowWidth / 2, windowHeight / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-    printf("x y z: %f %f %f\n", (float)pixel[0], (float)pixel[1], (float)pixel[2]);
-    // player_ptr->AimingAtBlockCoord.x = floor(player_ptr->location.x);
-    // player_ptr->AimingAtBlockCoord.y = floor(player_ptr->location.y);
-    // player_ptr->AimingAtBlockCoord.z = floor(player_ptr->location.z);
     player_ptr->AimingAtBlockCoord.x = (float)(pixel[0] - 16 + (int)floor(player_ptr->location.x));
     player_ptr->AimingAtBlockCoord.y = (float)(pixel[1] - 16 + (int)floor(player_ptr->location.y));
     player_ptr->AimingAtBlockCoord.z = (float)(pixel[2] - 16 + (int)floor(player_ptr->location.z));
@@ -402,10 +422,6 @@ void drawTerrain(const unsigned int& vao, bool isWater,
     glBindVertexArray(vao);
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
     glDrawElements(GL_TRIANGLES, INDICES_BUFFER_SIZE, GL_UNSIGNED_INT, 0);
-}
-
-bool isBlockOpaque(int id) {
-    return id != 0 && id != 10;
 }
 
 void updateSkyColor() {

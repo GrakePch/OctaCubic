@@ -87,7 +87,6 @@ void drawTerrain(const unsigned int& vao, bool isWater,
                  const glm::mat4* projection,
                  const glm::mat4* lightPosMat,
                  const glm::mat4* lightSpaceMat);
-bool isBlockOpaque(int id);
 // Update Sky color based on the rotation of lightPosition
 void updateSkyColor();
 
@@ -120,6 +119,12 @@ static bool CursorControlCam = false;
 static float CursorDeltaX = 0;
 static float CursorDeltaY = 0;
 static float CamRotSensitivity = .2f;
+static bool mouseButtonLeftPressed = false;
+static bool mouseButtonLeftPressedPrev = false;  // true if last frame is pressed.
+static bool mouseButtonLeftPressDown = false;
+static bool mouseButtonRightPressed = false;
+static bool mouseButtonRightPressedPrev = false; // true if last frame is pressed.
+static bool mouseButtonRightPressDown = false;
 
 // FPS displaying
 static double timePrev = 0.0;

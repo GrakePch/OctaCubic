@@ -2,7 +2,7 @@
 #include <array>
 #include <glm/vec3.hpp>
 
-#define DIM 32
+#define DIM 200
 
 namespace OctaCubic
 {
@@ -20,5 +20,15 @@ namespace OctaCubic
         World();
         static void randomizeSeed();
         void generate();
+        
+        bool isOutOfBound(const int x, const int y, const int z) const;
+
+        int getBlockId(const int x, const int y, const int z) const;
+
+        int setBlockId(const int x, const int y, const int z, const int blockId);
+
+        static bool isBlockOpaque(const int blockId);
+
+        bool isBlockOpaqueAtCoord(const int x, const int y, const int z) const;
     };
 }

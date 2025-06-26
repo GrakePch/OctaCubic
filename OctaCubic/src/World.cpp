@@ -64,3 +64,29 @@ void World::generate() {
         }
     }
 }
+
+bool World::isOutOfBound(const int x, const int y, const int z) const {
+    return x < 0 || y < 0 || z < 0 || x >= worldDimX || y >= worldDimY || z >= worldDimZ;
+}
+
+int World::getBlockId(const int x, const int y, const int z) const {
+    if (isOutOfBound(x, y, z))
+        return -1; // Out of bound
+    return world[x][z][y];
+}
+
+int World::setBlockId(const int x, const int y, const int z, const int blockId) {
+    if (isOutOfBound(x, y, z))
+        return -1; // Out of bound
+    if (world[x][z][y] == blockId) return -2; // No change
+    world[x][z][y] = blockId;
+    return blockId;
+}
+
+bool World::isBlockOpaque(const int blockId) {
+    return blockId != 0 && blockId != 10;
+}
+
+bool World::isBlockOpaqueAtCoord(const int x, const int y, const int z) const {
+    return isBlockOpaque(getBlockId(x, y, z));
+}
