@@ -25,7 +25,7 @@ void World::randomizeSeed() {
 
 void World::generate() {
     const int perlinSeed = rand();
-    const auto AltitudeSeaSurfaceF = static_cast<float>(AltitudeSeaSurface);
+    const auto AltitudeSeaSurfaceF = static_cast<float>(altitudeSeaSurface);
     for (int x = 0; x < worldDimX; ++x) {
         for (int z = 0; z < worldDimZ; ++z) {
             float surfaceHeightF =

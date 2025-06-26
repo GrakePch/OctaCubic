@@ -13,7 +13,7 @@ namespace OctaCubic
         glm::vec3 dimensions{.6f, 1.8f, .6f};
         float eyeHeight = 1.62f;
         glm::vec3 location{0, 72, 0};
-        glm::vec3 AimingAtBlockCoord{0, 0, 0};
+        glm::vec3 aimingAtBlockCoord{0, 0, 0};
         bool isAimingAtSomeBlock = false;
         float pitch = 0;
         float yaw = 0; // yaw = 0 facing x+

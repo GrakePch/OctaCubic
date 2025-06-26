@@ -15,7 +15,7 @@ namespace OctaCubic
         int worldDimMax;
         glm::vec3 worldCenter;
 
-        int AltitudeSeaSurface = 23;
+        int altitudeSeaSurface = 23;
     
         World();
         static void randomizeSeed();

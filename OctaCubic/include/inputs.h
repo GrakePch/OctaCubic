@@ -2,6 +2,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include "OctaCubic.h"
+
 extern OctaCubic::World world;
 extern OctaCubic::Player* player_ptr;
 extern OctaCubic::Shader shader;
@@ -38,7 +40,8 @@ inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
             if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) playerMoveUp = 0;
             if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) playerMoveUp = -1;
             if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) playerMoveUp = 0;
-        } else {
+        }
+        else {
             if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) player_ptr->jump();
         }
         if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) player_ptr->isSprinting = true;
@@ -68,11 +71,12 @@ inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
     if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
         isFirstPersonView = !isFirstPersonView;
         if (isFirstPersonView) {
-            CursorControlCam = true;
+            cursorControlCam = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             glfwSetCursorPos(window, static_cast<double>(windowWidth) / 2, static_cast<double>(windowHeight) / 2);
-        } else {
-            CursorControlCam = false;
+        }
+        else {
+            cursorControlCam = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
@@ -84,11 +88,11 @@ inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
         world.generate();
         worldVertCount = 0;
-        clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-        clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-        genWorldVertices();
-        bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
-        bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+        clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+        clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+        genBuffVtxWorld();
+        bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque, buffVtxTerrainOpaque, buffIdxTerrainOpaque);
+        bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater, buffVtxTerrainWater, buffIdxTerrainWater);
         if (player_ptr) player_ptr->generatePlayerSpawn();
     }
 }
@@ -108,28 +112,28 @@ inline void mouseCallback(GLFWwindow* window, int button, int action, int mods) 
     }
     if (!isFirstPersonView) {
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-            CursorControlCam = true;
+            cursorControlCam = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             glfwSetCursorPos(window, static_cast<double>(windowWidth) / 2, static_cast<double>(windowHeight) / 2);
         }
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-            CursorControlCam = false;
+            cursorControlCam = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
 }
 
 inline void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
-    if (yOffset > 0 && CamValDistance > 1 || yOffset < 0 && CamValDistance < 3)
-        CamValDistance -= (CamValDistance < 2 ? .05f : 0.1f) * static_cast<float>(yOffset);
+    if (yOffset > 0 && camValDistance > 1 || yOffset < 0 && camValDistance < 3)
+        camValDistance -= (camValDistance < 2 ? .05f : 0.1f) * static_cast<float>(yOffset);
 }
 
 inline void cursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
-    if (!CursorControlCam) return;
+    if (!cursorControlCam) return;
     const float halfWidth = static_cast<float>(windowWidth) / 2;
     const float halfHeight = static_cast<float>(windowHeight) / 2;
-    CursorDeltaX = static_cast<float>(xPos) - halfWidth;
-    CursorDeltaY = static_cast<float>(yPos) - halfHeight;
+    cursorDeltaX = static_cast<float>(xPos) - halfWidth;
+    cursorDeltaY = static_cast<float>(yPos) - halfHeight;
     glfwSetCursorPos(window, (double)halfWidth, (double)halfHeight);
 }
 
@@ -150,7 +154,8 @@ inline void toggleFullScreen(GLFWwindow* window) {
         GLFWmonitor* monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
         glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, 0);
-    } else {
+    }
+    else {
         glfwSetWindowMonitor(window, nullptr, windowPosX, windowPosY, windowWidth, windowHeight, 0);
     }
 }

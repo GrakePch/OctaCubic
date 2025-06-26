@@ -44,7 +44,7 @@ int main() {
     GLFWwindow* window = glfwCreateWindow(
         windowWidth,
         windowHeight,
-        windowTitle.c_str(),
+        window_title.c_str(),
         nullptr, // Monitor; glfwGetPrimaryMonitor(): full screen
         nullptr // Resource sharing
     );
@@ -70,7 +70,7 @@ int main() {
     shCoord.compile("src/shaders/coord_v.glsl", "src/shaders/coord_f.glsl");
     shDebugFrameBuffer.compile("src/shaders/frameBuffer_v.glsl", "src/shaders/frameBuffer_f.glsl");
     shHighlightBlock.compile("src/shaders/highlightBlock_v.glsl", "src/shaders/highlightBlock_f.glsl");
-    
+
     // Set Inputs
     setInputs(window);
 
@@ -91,7 +91,7 @@ int main() {
     lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
 
     OctaCubic::World::randomizeSeed();
-    world.AltitudeSeaSurface = SEA_SURFACE_ALTITUDE;
+    world.altitudeSeaSurface = SEA_SURFACE_ALTITUDE;
     world.generate();
 
     OctaCubic::Player player{};
@@ -102,15 +102,15 @@ int main() {
     setupDepthMap();
     setupBlockCoordMap();
     setupTextures();
-    setupBuffers(terrainVAO, terrainVBO, terrainEBO);
-    setupBuffers(terrWaterVAO, terrWaterVBO, terrWaterEBO);
-    
-    genWorldVertices();
-    bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
-    bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+    setupBuffers(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque);
+    setupBuffers(vaoTerrainWater, vboTerrainWater, eboTerrainWater);
+
+    genBuffVtxWorld();
+    bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque, buffVtxTerrainOpaque, buffIdxTerrainOpaque);
+    bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater, buffVtxTerrainWater, buffIdxTerrainWater);
 
     while (!glfwWindowShouldClose(window)) {
-        displayFPS(window, &player);
+        displayFps(window, &player);
 
         // Clear screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -125,23 +125,25 @@ int main() {
         mouseButtonRightPressedPrev = mouseButtonRightPressed;
 
         // Destroy & place block
-        const int aX = static_cast<int>(player_ptr->AimingAtBlockCoord.x);
-        const int aY = static_cast<int>(player_ptr->AimingAtBlockCoord.y);
-        const int aZ = static_cast<int>(player_ptr->AimingAtBlockCoord.z);
+        const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
+        const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
+        const int aZ = static_cast<int>(player_ptr->aimingAtBlockCoord.z);
         bool blockChanged = false;
         if (mouseButtonLeftPressDown) {
             blockChanged = world.setBlockId(aX, aY, aZ, 0) >= 0;
         }
         if (mouseButtonRightPressDown) {
-            blockChanged = world.setBlockId(aX, aY+1, aZ, 2) >= 0;
+            blockChanged = world.setBlockId(aX, aY + 1, aZ, 2) >= 0;
         }
         if (blockChanged) {
             worldVertCount = 0;
-            clearVerticesBuffer(verticesBuff, indicesBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-            clearVerticesBuffer(verticesWaterBuff, indicesWaterBuff, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-            genWorldVertices();
-            bufferData(terrainVAO, terrainVBO, terrainEBO,verticesBuff, indicesBuff);
-            bufferData(terrWaterVAO, terrWaterVBO, terrWaterEBO, verticesWaterBuff, indicesWaterBuff);
+            clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+            clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+            genBuffVtxWorld();
+            bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque,
+                       buffVtxTerrainOpaque, buffIdxTerrainOpaque);
+            bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater,
+                       buffVtxTerrainWater, buffIdxTerrainWater);
         }
     }
 
@@ -150,14 +152,14 @@ int main() {
 
 
 // Generate world vertices
-void genWorldVertices() {
+void genBuffVtxWorld() {
     worldVertCount = 0;
-    genTerrainVertices();
-    genWaterVertices();
+    genBuffVtxTerrainOpaque();
+    genBuffVtxTerrainWater();
 }
 
 
-void genTerrainVertices() {
+void genBuffVtxTerrainOpaque() {
     int currQuadIdx = 0;
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
@@ -177,29 +179,35 @@ void genTerrainVertices() {
                     continue;
 
                 if (x == world.worldDimX - 1 || !world.isBlockOpaqueAtCoord(x + 1, y, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XPos.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.XPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
                 if (z == world.worldDimZ - 1 || !world.isBlockOpaqueAtCoord(x, y, z + 1))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZPos.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.ZPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
                 if (y == world.worldDimY - 1 || !world.isBlockOpaqueAtCoord(x, y + 1, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YPos.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.YPos.getVertices(), currId, x,
                                         y, z, worldVertCount);
                 if (x == 0 || !world.isBlockOpaqueAtCoord(x - 1, y, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.XNeg.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.XNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
                 if (z == 0 || !world.isBlockOpaqueAtCoord(x, y, z - 1))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.ZNeg.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.ZNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
                 if (y == 0 || !world.isBlockOpaqueAtCoord(x, y - 1, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesBuff, indicesBuff, &currQuadIdx, unitCube.YNeg.getVertices(), currId, x,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
+                                        unitCube.YNeg.getVertices(), currId, x,
                                         y, z, worldVertCount);
             }
         }
     }
 }
 
-void genWaterVertices() {
+void genBuffVtxTerrainWater() {
     int currQuadIdx = 0;
     for (int x = 0; x < world.worldDimMax; ++x) {
         for (int z = 0; z < world.worldDimMax; ++z) {
@@ -215,27 +223,27 @@ void genWaterVertices() {
 
                 // if water face faces to water, not render
                 if (x == world.worldDimX - 1 || world.getBlockId(x + 1, y, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.XPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
                 if (z == world.worldDimZ - 1 || world.getBlockId(x, y, z + 1) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.ZPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
                 if (y == world.worldDimY - 1 || world.getBlockId(x, y + 1, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.YPos.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
                 if (x == 0 || world.getBlockId(x - 1, y, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.XNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
                 if (z == 0 || world.getBlockId(x, y, z - 1) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.ZNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
                 if (y == 0 || world.getBlockId(x, y - 1, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, verticesWaterBuff, indicesWaterBuff, &currQuadIdx,
+                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
                                         unitCube.YNeg.getVerticesWithTrans(CubePos),
                                         currId, x, y, z, worldVertCount);
             }
@@ -266,11 +274,11 @@ void drawVertices(OctaCubic::Player& player) {
                                       glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glViewport(0, 0, shadow_width, shadow_height);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboDepthMap);
     glClear(GL_DEPTH_BUFFER_BIT);
     shShadowMap.use();
-    drawTerrain(terrainVAO, false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
+    drawTerrain(vaoTerrainOpaque, false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     if (showLightSpaceDepth) {
@@ -281,7 +289,7 @@ void drawVertices(OctaCubic::Player& player) {
         shDebugDepth.setFloat("far_plane", far_plane);
         shDebugDepth.setInt("depthMap", 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glBindTexture(GL_TEXTURE_2D, texDepthMap);
         renderQuad();
         return;
     }
@@ -291,26 +299,27 @@ void drawVertices(OctaCubic::Player& player) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // View(Camera) Transform
-    CamView = glm::mat4(1.0f);
+    camView = glm::mat4(1.0f);
     if (isFirstPersonView) {
-        player.updateLocation((float)Second, playerMoveForward, playerMoveRight, playerMoveUp);
-        CamView = player.rotateFacing(CamView, CursorDeltaX, CursorDeltaY, CamRotSensitivity);
-    } else {
+        player.updateLocation((float)second, playerMoveForward, playerMoveRight, playerMoveUp);
+        camView = player.rotateFacing(camView, cursorDeltaX, cursorDeltaY, camRotSensitivity);
+    }
+    else {
         // Cam z distance
-        CamView = glm::translate(CamView, {0.0f, 0.0f, -(float)world.worldDimMax * CamValDistance});
-        if (CursorControlCam) {
-            CamValPitch = glm::clamp<float>(CamValPitch + CursorDeltaY * CamRotSensitivity, -90, 90);
-            CamValYaw += CursorDeltaX * CamRotSensitivity;
-            if (CamValYaw >= 180) CamValYaw -= 360;
-            if (CamValYaw < -180) CamValYaw += 360;
+        camView = glm::translate(camView, {0.0f, 0.0f, -(float)world.worldDimMax * camValDistance});
+        if (cursorControlCam) {
+            camValPitch = glm::clamp<float>(camValPitch + cursorDeltaY * camRotSensitivity, -90, 90);
+            camValYaw += cursorDeltaX * camRotSensitivity;
+            if (camValYaw >= 180) camValYaw -= 360;
+            if (camValYaw < -180) camValYaw += 360;
         }
-        CamView = glm::rotate(CamView, glm::radians(CamValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
-        CamView = glm::rotate(CamView, glm::radians(CamValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-        CamView = glm::translate(CamView, -world.worldCenter);
+        camView = glm::rotate(camView, glm::radians(camValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
+        camView = glm::rotate(camView, glm::radians(camValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+        camView = glm::translate(camView, -world.worldCenter);
     }
     // Clear cursor delta value
-    CursorDeltaX = 0;
-    CursorDeltaY = 0;
+    cursorDeltaX = 0;
+    cursorDeltaY = 0;
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(isFirstPersonView
@@ -321,53 +330,53 @@ void drawVertices(OctaCubic::Player& player) {
                                             5 * (float)world.worldDimMax);
 
 
-    glBindFramebuffer(GL_FRAMEBUFFER, blockCoordMapFBO);
-    glClearColor(1.0,1.0,1.0,1.0);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboBlockCoordMap);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     shCoord.use();
     shCoord.setFloat("worldMaxDim", (float)world.worldDimMax);
     shCoord.setVec3("playerCoord", player_ptr->location);
-    drawTerrain(terrainVAO, false, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
-    
+    drawTerrain(vaoTerrainOpaque, false, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
+
     unsigned char pixel[4];
     glReadPixels(windowWidth / 2, windowHeight / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-    player_ptr->AimingAtBlockCoord.x = (float)(pixel[0] - 16 + (int)floor(player_ptr->location.x));
-    player_ptr->AimingAtBlockCoord.y = (float)(pixel[1] - 16 + (int)floor(player_ptr->location.y));
-    player_ptr->AimingAtBlockCoord.z = (float)(pixel[2] - 16 + (int)floor(player_ptr->location.z));
-    player_ptr->isAimingAtSomeBlock = player_ptr->AimingAtBlockCoord.x < world.worldDimMax;
+    player_ptr->aimingAtBlockCoord.x = (float)(pixel[0] - 16 + (int)floor(player_ptr->location.x));
+    player_ptr->aimingAtBlockCoord.y = (float)(pixel[1] - 16 + (int)floor(player_ptr->location.y));
+    player_ptr->aimingAtBlockCoord.z = (float)(pixel[2] - 16 + (int)floor(player_ptr->location.z));
+    player_ptr->isAimingAtSomeBlock = player_ptr->aimingAtBlockCoord.x < world.worldDimMax;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+
     if (showBlockCoord) {
         glViewport(0, 0, windowWidth, windowHeight);
         glClear(GL_COLOR_BUFFER_BIT);
         shDebugFrameBuffer.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, blockCoordMap);
+        glBindTexture(GL_TEXTURE_2D, texBlockCoordMap);
         renderQuad();
         return;
     }
-    
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texBlocks);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    
+    glBindTexture(GL_TEXTURE_2D, texDepthMap);
+
     updateSkyColor();
-    
+
     shader.use();
-    drawTerrain(terrainVAO, false, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    drawTerrain(vaoTerrainOpaque, false, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
     shWater.use();
-    drawTerrain(terrWaterVAO, true, &CamView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    drawTerrain(vaoTerrainWater, true, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
 
     // Render Player Aiming Block
     shHighlightBlock.use();
     glm::mat4 aimingBlockModel = glm::mat4{1.0f};
-    aimingBlockModel = translate(aimingBlockModel, player_ptr->AimingAtBlockCoord);
+    aimingBlockModel = translate(aimingBlockModel, player_ptr->aimingAtBlockCoord);
     aimingBlockModel = translate(aimingBlockModel, glm::vec3{-.005f});
     aimingBlockModel = glm::scale(aimingBlockModel, glm::vec3{1.01f});
     shHighlightBlock.setMat4("model", aimingBlockModel);
-    shHighlightBlock.setMat4("view", CamView);
+    shHighlightBlock.setMat4("view", camView);
     shHighlightBlock.setMat4("projection", projection);
     unitCube.XPos.renderQuad();
     unitCube.XNeg.renderQuad();
@@ -375,7 +384,7 @@ void drawVertices(OctaCubic::Player& player) {
     unitCube.YNeg.renderQuad();
     unitCube.ZPos.renderQuad();
     unitCube.ZNeg.renderQuad();
-    
+
     return;
     // Render Sun
     glm::mat4 SunPos = glm::mat4(1.0f);
@@ -417,7 +426,8 @@ void drawTerrain(const unsigned int& vao, bool isWater,
         OctaCubic::Shader::activeShader->setFloat("specularStrength", 2);
         OctaCubic::Shader::activeShader->setFloat("waveStrength", 1);
         OctaCubic::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.2, .4, .9, .8});
-    } else {
+    }
+    else {
         // No specular lighting and wave
         OctaCubic::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.5, .9, .1, 1});
     }
@@ -463,7 +473,8 @@ void setupTextures() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texBlocksDimX, texBlocksDimY, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                      texBlocks_data);
         glGenerateMipmap(GL_TEXTURE_2D);
-    } else {
+    }
+    else {
         printf("Failed to load texture");
     }
     stbi_image_free(texBlocks_data); // free the loaded image
@@ -499,7 +510,7 @@ void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo) {
 }
 
 void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned int& ebo,
-                  const float* verticesBuffer, const unsigned int* indicesBuffer) {
+                const float* verticesBuffer, const unsigned int* indicesBuffer) {
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTICES_BUFFER_SIZE * sizeof(float), verticesBuffer, GL_STATIC_DRAW);
@@ -508,60 +519,60 @@ void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned
 }
 
 void setupDepthMap() {
-    glGenFramebuffers(1, &depthMapFBO);
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+    glGenFramebuffers(1, &fboDepthMap);
+    glGenTextures(1, &texDepthMap);
+    glBindTexture(GL_TEXTURE_2D, texDepthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_width, shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
                  nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboDepthMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texDepthMap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void setupBlockCoordMap() {
-    glGenFramebuffers(1, &blockCoordMapFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, blockCoordMapFBO);
-    
-    glGenTextures(1, &blockCoordMap);
-    glBindTexture(GL_TEXTURE_2D, blockCoordMap);
+    glGenFramebuffers(1, &fboBlockCoordMap);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboBlockCoordMap);
+
+    glGenTextures(1, &texBlockCoordMap);
+    glBindTexture(GL_TEXTURE_2D, texBlockCoordMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
-    nullptr);
+                 nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blockCoordMap, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texBlockCoordMap, 0);
 
     // bind Render buffer to enable depth testing
-    glGenRenderbuffers(1, &blockCoordMapRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, blockCoordMapRBO);
+    glGenRenderbuffers(1, &rboBlockCoordMap);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboBlockCoordMap);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, blockCoordMapRBO);
-    
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboBlockCoordMap);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
 // FPS displaying
-void displayFPS(GLFWwindow* window, const OctaCubic::Player* player_ptr_local) {
+void displayFps(GLFWwindow* window, const OctaCubic::Player* player_ptr_local) {
     timeCurr = glfwGetTime();
     timeDiff = timeCurr - timePrev;
-    FrameCounter++;
+    frameCounter++;
     if (timeDiff >= 1.0 / 30.0) {
         // Update FPS & Frame interval
-        FPS = 1.0 / timeDiff * FrameCounter;
-        Second = timeDiff / FrameCounter;
+        fps = 1.0 / timeDiff * frameCounter;
+        second = timeDiff / frameCounter;
         // Update title of window
         const std::string newTitle =
-            windowTitle + "   "
-            + dToDecimalStr(FPS) + " FPS | "
-            + dToDecimalStr(Second * 1000) + " MS | "
+            window_title + "   "
+            + dToDecimalStr(fps) + " FPS | "
+            + dToDecimalStr(second * 1000) + " MS | "
             + std::to_string(worldVertCount) + " Vertices | "
             + "Player @ "
             + dToDecimalStr((double)player_ptr_local->location.x) + " "
@@ -569,15 +580,15 @@ void displayFPS(GLFWwindow* window, const OctaCubic::Player* player_ptr_local) {
             + dToDecimalStr((double)player_ptr_local->location.z) + " | "
             + "Aiming At Block "
             + (player_ptr_local->isAimingAtSomeBlock
-                   ? std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.x)) + " "
-                   + std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.y)) + " "
-                   + std::to_string((int)floor(player_ptr_local->AimingAtBlockCoord.z)) + " "
+                   ? std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.x)) + " "
+                   + std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.y)) + " "
+                   + std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.z)) + " "
                    : "Null"
             );
         glfwSetWindowTitle(window, newTitle.c_str());
 
         // Reset times and counter
         timePrev = timeCurr;
-        FrameCounter = 0;
+        frameCounter = 0;
     }
 }

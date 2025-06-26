@@ -21,7 +21,7 @@ struct Vertex {
 };
 
 
-static const std::string windowTitle = "OctaCubic";
+static const std::string window_title = "OctaCubic";
 static int windowWidth = 1280;
 static int windowHeight = 720;
 static int windowPosX = 0;
@@ -42,7 +42,7 @@ static float skyColorMap[] = {
 static float ambient = 0.15f;
 
 // View(Camera) Transform
-static glm::mat4 CamView;
+static glm::mat4 camView;
 
 // light Position Transform
 static glm::vec3 lightPosition = {0.0f, 3.0f, 1.0f};
@@ -50,9 +50,9 @@ static glm::vec3 lightPosition = {0.0f, 3.0f, 1.0f};
 // Transform Inputs
 static bool isFullScreen = false;
 static int lightPosInputRotZ = 0;
-static float CamValYaw = 45.0f;
-static float CamValPitch = 30.0f;
-static float CamValDistance = 2.0f;
+static float camValYaw = 45.0f;
+static float camValPitch = 30.0f;
+static float camValDistance = 2.0f;
 static float lightPosRotZ = 0.0f;
 
 // Terrain vertices buffers
@@ -60,26 +60,26 @@ static float lightPosRotZ = 0.0f;
 // 32^3 blocks * 6 faces * 4 vertices * 12 attributes
 #define INDICES_BUFFER_SIZE 1179648
 // 32^3 blocks * 6 faces * 6 indices
-unsigned int terrainVAO = 0;
-unsigned int terrainVBO;
-unsigned int terrainEBO;
-float verticesBuff[VERTICES_BUFFER_SIZE] = {0};
-unsigned int indicesBuff[INDICES_BUFFER_SIZE] = {0};
+unsigned int vaoTerrainOpaque = 0;
+unsigned int vboTerrainOpaque;
+unsigned int eboTerrainOpaque;
+float buffVtxTerrainOpaque[VERTICES_BUFFER_SIZE] = {0};
+unsigned int buffIdxTerrainOpaque[INDICES_BUFFER_SIZE] = {0};
 
-unsigned int terrWaterVAO = 0;
-unsigned int terrWaterVBO;
-unsigned int terrWaterEBO;
-float verticesWaterBuff[VERTICES_BUFFER_SIZE] = {0};
-unsigned int indicesWaterBuff[INDICES_BUFFER_SIZE] = {0};
+unsigned int vaoTerrainWater = 0;
+unsigned int vboTerrainWater;
+unsigned int eboTerrainWater;
+float buffVtxTerrainWater[VERTICES_BUFFER_SIZE] = {0};
+unsigned int buffIdxTerrainWater[INDICES_BUFFER_SIZE] = {0};
 void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo);
 void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned int& ebo,
                   const float* verticesBuffer, const unsigned int* indicesBuffer);
 
 // Generate world vertices
 unsigned int worldVertCount = 0;
-void genWorldVertices();
-void genTerrainVertices();
-void genWaterVertices();
+void genBuffVtxWorld();
+void genBuffVtxTerrainOpaque();
+void genBuffVtxTerrainWater();
 
 // render
 void drawVertices(OctaCubic::Player& player);
@@ -98,16 +98,16 @@ unsigned int texBlocks;
 void setupTextures();
 
 // depth map
-unsigned int depthMapFBO;
-const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
-unsigned int depthMap;
+unsigned int fboDepthMap;
+constexpr unsigned int shadow_width = 16384, shadow_height = 16384;
+unsigned int texDepthMap;
 void setupDepthMap();
 bool showLightSpaceDepth = false;
 
 // block coord map
-unsigned int blockCoordMapFBO;
-unsigned int blockCoordMap;
-unsigned int blockCoordMapRBO;
+unsigned int fboBlockCoordMap;
+unsigned int texBlockCoordMap;
+unsigned int rboBlockCoordMap;
 void setupBlockCoordMap();
 bool showBlockCoord = false;
 
@@ -116,10 +116,10 @@ static bool isFirstPersonView = false;
 static int playerMoveForward = 0;
 static int playerMoveRight = 0;
 static int playerMoveUp = 0;
-static bool CursorControlCam = false;
-static float CursorDeltaX = 0;
-static float CursorDeltaY = 0;
-static float CamRotSensitivity = .2f;
+static bool cursorControlCam = false;
+static float cursorDeltaX = 0;
+static float cursorDeltaY = 0;
+static float camRotSensitivity = .2f;
 static bool mouseButtonLeftPressed = false;
 static bool mouseButtonLeftPressedPrev = false;  // true if last frame is pressed.
 static bool mouseButtonLeftPressDown = false;
@@ -131,9 +131,9 @@ static bool mouseButtonRightPressDown = false;
 static double timePrev = 0.0;
 static double timeCurr = 0.0;
 static double timeDiff;
-static double FPS = 0.0;
-static double Second = 0.0;
-static unsigned int FrameCounter = 0;
-void displayFPS(GLFWwindow* window, const OctaCubic::Player* player_ptr_local);
+static double fps = 0.0;
+static double second = 0.0;
+static unsigned int frameCounter = 0;
+void displayFps(GLFWwindow* window, const OctaCubic::Player* player_ptr_local);
 
 #endif
