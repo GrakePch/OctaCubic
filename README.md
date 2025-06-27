@@ -78,6 +78,12 @@ Used libraries: GLFW, Glad, glm, stb.
   - [x] Basic
   - [x] Multiple textures for one block
 
+## Libraries
+- [GLFW](https://www.glfw.org/) - Window management and input handling
+- [Glad](https://github.com/Dav1dde/glad) - OpenGL function loader
+- [glm](https://github.com/g-truc/glm) - Mathematics library for OpenGL
+- [stb_image](https://github.com/nothings/stb) - Image loader
+
 ## Implementation
 
 ### Terrain Generation
