@@ -4,7 +4,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <iostream>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
+#include <string>
 #include <glad/glad.h> // Must before GLFW
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -26,6 +30,13 @@ static int windowWidth = 1280;
 static int windowHeight = 720;
 static int windowPosX = 0;
 static int windowPosY = 0;
+
+// Game Logic Variables
+static double timePrev = 0.0;
+static double timeCurr = 0.0;
+static double timeDiff;
+static double second = 0.0;
+static unsigned int frameCounter = 0;
 
 static glm::vec3 lightColor = {1.0f, 1.0f, .95f};
 static float skyColorMap[] = {
@@ -127,13 +138,7 @@ static bool mouseButtonRightPressed = false;
 static bool mouseButtonRightPressedPrev = false; // true if last frame is pressed.
 static bool mouseButtonRightPressDown = false;
 
-// FPS displaying
-static double timePrev = 0.0;
-static double timeCurr = 0.0;
-static double timeDiff;
-static double fps = 0.0;
-static double second = 0.0;
-static unsigned int frameCounter = 0;
-void displayFps(GLFWwindow* window, const OctaCubic::Player* player_ptr_local);
+// Debugging
+void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local);
 
 #endif

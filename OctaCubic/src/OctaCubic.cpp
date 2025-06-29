@@ -57,7 +57,9 @@ int main() {
 
     glfwMakeContextCurrent(window);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        return printf("Failed to initialize GLAD\n");
+        printf("Failed to initialize GLAD\n");
+        glfwTerminate();
+        return -1;
     }
     // Make sure not to call any OpenGL functions until *after* we initialize our function loader
 
@@ -82,7 +84,7 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    std::cout << glGetString(GL_VERSION) << std::endl;
+    printf("%s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
     // Light Position Transform
     auto lightPosMat = glm::mat4(1.0f);
@@ -109,21 +111,33 @@ int main() {
     bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque, buffVtxTerrainOpaque, buffIdxTerrainOpaque);
     bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater, buffVtxTerrainWater, buffIdxTerrainWater);
 
+    // Setup ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true); // install_callback=true: install GLFW callbacks and chain to existing ones.
+    ImGui_ImplOpenGL3_Init();
+
     while (!glfwWindowShouldClose(window)) {
-        displayFps(window, &player);
-
-        // Clear screen
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        drawVertices(player);
-
-        glfwSwapBuffers(window);
+        
+        // Update inputs
         glfwPollEvents();
         mouseButtonLeftPressDown = mouseButtonLeftPressed && !mouseButtonLeftPressedPrev;
         mouseButtonLeftPressedPrev = mouseButtonLeftPressed;
         mouseButtonRightPressDown = mouseButtonRightPressed && !mouseButtonRightPressedPrev;
         mouseButtonRightPressedPrev = mouseButtonRightPressed;
 
+        /* Start handling game logics */
+        // Update time related variables
+        timeCurr = glfwGetTime();
+        timeDiff = timeCurr - timePrev;
+        frameCounter++;
+        if (timeDiff >= 1.0 / 30.0) {
+            second = timeDiff / frameCounter;
+        }
         // Destroy & place block
         const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
         const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
@@ -145,7 +159,27 @@ int main() {
             bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater,
                        buffVtxTerrainWater, buffIdxTerrainWater);
         }
+        /* End handling game logics */
+
+        // Debugging GUI
+        updateDebuggingGUI(&player);
+
+        // Clear screen
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Main Draw
+        drawVertices(player);
+
+        // Render Debugging GUI
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(window);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
 }
@@ -559,36 +593,40 @@ void setupBlockCoordMap() {
 }
 
 
-// FPS displaying
-void displayFps(GLFWwindow* window, const OctaCubic::Player* player_ptr_local) {
-    timeCurr = glfwGetTime();
-    timeDiff = timeCurr - timePrev;
-    frameCounter++;
-    if (timeDiff >= 1.0 / 30.0) {
-        // Update FPS & Frame interval
-        fps = 1.0 / timeDiff * frameCounter;
-        second = timeDiff / frameCounter;
-        // Update title of window
-        const std::string newTitle =
-            window_title + "   "
-            + dToDecimalStr(fps) + " FPS | "
-            + dToDecimalStr(second * 1000) + " MS | "
-            + std::to_string(worldVertCount) + " Vertices | "
-            + "Player @ "
-            + dToDecimalStr((double)player_ptr_local->location.x) + " "
-            + dToDecimalStr((double)player_ptr_local->location.y) + " "
-            + dToDecimalStr((double)player_ptr_local->location.z) + " | "
-            + "Aiming At Block "
-            + (player_ptr_local->isAimingAtSomeBlock
-                   ? std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.x)) + " "
-                   + std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.y)) + " "
-                   + std::to_string((int)floor(player_ptr_local->aimingAtBlockCoord.z)) + " "
-                   : "Null"
-            );
-        glfwSetWindowTitle(window, newTitle.c_str());
+// Debugging
+void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-        // Reset times and counter
-        timePrev = timeCurr;
-        frameCounter = 0;
-    }
+    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+    
+    ImGui::SetNextWindowBgAlpha(0.5f);
+    ImGui::GetStyle().FontScaleDpi = 2.0f;
+    ImGui::GetStyle().WindowBorderSize = 0.0f;
+
+    ImGui::Begin("Debug", nullptr,
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoFocusOnAppearing |
+        ImGuiWindowFlags_NoNav |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoInputs);
+
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+    ImGui::Text("MS: %.1f", ImGui::GetIO().Framerate > 0 ? 1000.0f / ImGui::GetIO().Framerate : 0.0f);
+    ImGui::Text("%u Vertices", worldVertCount);
+    ImGui::Text("Player @ %.1f %.1f %.1f",
+                player_ptr_local->location.x,
+                player_ptr_local->location.y,
+                player_ptr_local->location.z);
+    if (player_ptr_local->isAimingAtSomeBlock)
+    ImGui::Text("Aiming @ %d %d %d", 
+                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.x)),
+                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.y)),
+                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.z)));
+    else
+        ImGui::Text("Aiming @ Nothing");
+
+    ImGui::End();
 }
