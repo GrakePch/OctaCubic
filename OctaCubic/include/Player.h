@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
+#include "utils.h"
 #include "World.h"
 
 #define PI 3.14159265
@@ -29,10 +30,6 @@ namespace OctaCubic
         World* world_ptr = nullptr;
 
         Player() = default;
-
-        static float clamp(float x, float min, float max) {
-            return x > max ? max : x < min ? min : x;
-        }
 
         bool blockHasCollision(int x, int y, int z) const {
             if (x < 0 || y < 0 || z < 0
@@ -225,7 +222,7 @@ namespace OctaCubic
         }
 
         void updateRotation(const float deltaX, const float deltaY, const float sensitivity) {
-            pitch = glm::clamp<float>(pitch + deltaY * sensitivity * .5f, -90, 90);
+            pitch = glm::clamp<float>(pitch - deltaY * sensitivity * .5f, -90, 90);
             yaw += deltaX * sensitivity * .5f;
             if (yaw >= 180) yaw -= 360;
             if (yaw < -180) yaw += 360;
@@ -233,7 +230,7 @@ namespace OctaCubic
 
         glm::mat4 getCameraViewMat4() const {
             glm::mat4 camView(1.0f);
-            camView = glm::rotate(camView, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+            camView = glm::rotate(camView, glm::radians(pitch), glm::vec3(-1.0f, 0.0f, 0.0f));
             camView = glm::rotate(camView, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
             camView = glm::translate(camView, -location - glm::vec3{0, eyeHeight, 0});
             return camView;

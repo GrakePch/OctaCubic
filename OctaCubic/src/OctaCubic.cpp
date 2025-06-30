@@ -1,4 +1,15 @@
 #include "OctaCubic.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
+#include <glad/glad.h> // Must before GLFW
+#include <GLFW/glfw3.h>
+
 #include "Shader.h"
 #include "Cube.h"
 #include "World.h"
@@ -622,8 +633,10 @@ void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
                 player_ptr_local->location.x,
                 player_ptr_local->location.y,
                 player_ptr_local->location.z);
+    ImGui::Text("Yaw: %.1f Pitch: %.1f",
+                player_ptr_local->yaw, player_ptr_local->pitch);
     if (player_ptr_local->isAimingAtSomeBlock)
-    ImGui::Text("Aiming @ %d %d %d", 
+        ImGui::Text("Aiming @ %d %d %d", 
                 static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.x)),
                 static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.y)),
                 static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.z)));

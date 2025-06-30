@@ -1,20 +1,11 @@
 ﻿#ifndef OCTACUBIC_CORE_H
 #define OCTACUBIC_CORE_H
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-
 #include <string>
-#include <glad/glad.h> // Must before GLFW
-#include <GLFW/glfw3.h>
+#include <array>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <array>
 
 #include "Player.h"
 
