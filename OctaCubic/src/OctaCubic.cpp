@@ -122,7 +122,7 @@ int main() {
     ImGui_ImplOpenGL3_Init();
 
     while (!glfwWindowShouldClose(window)) {
-        
+
         // Update inputs
         glfwPollEvents();
         mouseButtonLeftPressDown = mouseButtonLeftPressed && !mouseButtonLeftPressedPrev;
@@ -138,6 +138,9 @@ int main() {
         if (timeDiff >= 1.0 / 30.0) {
             second = timeDiff / frameCounter;
         }
+        // Update player
+        player.updateLocation(static_cast<float>(second), playerMoveForward, playerMoveRight, playerMoveUp);
+        player.updateRotation(cursorDeltaX, cursorDeltaY, camRotSensitivity);
         // Destroy & place block
         const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
         const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
@@ -335,8 +338,7 @@ void drawVertices(OctaCubic::Player& player) {
     // View(Camera) Transform
     camView = glm::mat4(1.0f);
     if (isFirstPersonView) {
-        player.updateLocation((float)second, playerMoveForward, playerMoveRight, playerMoveUp);
-        camView = player.rotateFacing(camView, cursorDeltaX, cursorDeltaY, camRotSensitivity);
+        camView = player.getCameraViewMat4();
     }
     else {
         // Cam z distance

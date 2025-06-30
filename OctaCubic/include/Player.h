@@ -224,15 +224,19 @@ namespace OctaCubic
             if (isInAir()) currSpeedUp = speedJump;
         }
 
-        glm::mat4 rotateFacing(glm::mat4 CamView, float deltaX, float deltaY, float sensitivity) {
+        void updateRotation(const float deltaX, const float deltaY, const float sensitivity) {
             pitch = glm::clamp<float>(pitch + deltaY * sensitivity * .5f, -90, 90);
             yaw += deltaX * sensitivity * .5f;
             if (yaw >= 180) yaw -= 360;
             if (yaw < -180) yaw += 360;
-            CamView = glm::rotate(CamView, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-            CamView = glm::rotate(CamView, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-            CamView = glm::translate(CamView, -location - glm::vec3{0, eyeHeight, 0});
-            return CamView;
+        }
+
+        glm::mat4 getCameraViewMat4() const {
+            glm::mat4 camView(1.0f);
+            camView = glm::rotate(camView, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+            camView = glm::rotate(camView, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+            camView = glm::translate(camView, -location - glm::vec3{0, eyeHeight, 0});
+            return camView;
         }
 
         bool generatePlayerSpawn() {
