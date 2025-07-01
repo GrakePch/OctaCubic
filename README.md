@@ -23,39 +23,40 @@ Used libraries: GLFW, Glad, glm, stb.
 
 ### Universal
 
-| Key | Operation |
-| --- | --- |
-| Q / E | Sun orbit to West / East |
-| F1 | Default rendering |
-| F2 | Show wireframes |
-| F3 | Show normal (camera view) |
-| F5 | Toggle Observer / First Person view |
-| F10 | Toggle Player Floating |
-| F11 | Toggle full screen |
-| F12 | Randomize terrain |
-| Esc | Exit |
+| Key   | Operation                           |
+|-------|-------------------------------------|
+| Q / E | Sun orbit to West / East            |
+| F1    | Default rendering                   |
+| F2    | Show wireframes                     |
+| F3    | Show normal (camera view)           |
+| F4    | Show shadow map                     |
+| F5    | Toggle Observer / First Person view |
+| F10   | Toggle Player Floating              |
+| F11   | Toggle full screen                  |
+| F12   | Randomize terrain                   |
+| Esc   | Exit                                |
 
 ### Observer View
 
-| Mouse | Operation |
-| ----- | --- |
-| Hold LMB & Move | Orbit camera around world |
-| Scroll Up / Down | Zoom in / out |
+| Mouse            | Operation                 |
+|------------------|---------------------------|
+| Hold LMB & Move  | Orbit camera around world |
+| Scroll Up / Down | Zoom in / out             |
 
 ### First Person View
 
-| Mouse | Operation |
-| ----- | --- |
-| Move | Look around |
-| LMB | Destory block |
-| RMB | Place block above the aiming block |
+| Mouse | Operation                      |
+|-------|--------------------------------|
+| Move  | Look around                    |
+| LMB   | Destroy block                  |
+| RMB   | Place block at the aiming face |
 
-| Key | Operation |
-| --- | --- |
-| W / S | move forward / backward |
-| A / D | move to left / right |
-| LShift | sprinting |
-| Space | Jump |
+| Key           | Operation                            |
+|---------------|--------------------------------------|
+| W / S         | move forward / backward              |
+| A / D         | move to left / right                 |
+| LShift        | sprinting                            |
+| Space         | Jump                                 |
 | Space / LCtrl | Floating Mode: Player move up / down |
 
 ## To-do
@@ -70,7 +71,7 @@ Used libraries: GLFW, Glad, glm, stb.
   - [x] Movements
   - [x] Collision
   - [x] Block placing & destroying
-  - [ ] Block placing on the block face
+  - [x] Block placing on the block face
 - [x] Performance improvement
 - [x] Shadow Mapping (use depth map)
 - [x] Sky color changes with sun position

@@ -106,13 +106,6 @@ unsigned int texDepthMap;
 void setupDepthMap();
 bool showLightSpaceDepth = false;
 
-// block coord map
-unsigned int fboBlockCoordMap;
-unsigned int texBlockCoordMap;
-unsigned int rboBlockCoordMap;
-void setupBlockCoordMap();
-bool showBlockCoord = false;
-
 // inputs
 static bool isFirstPersonView = false;
 static int playerMoveForward = 0;

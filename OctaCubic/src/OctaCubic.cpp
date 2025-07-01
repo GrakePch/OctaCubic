@@ -28,7 +28,6 @@ OctaCubic::Shader shWater{};
 OctaCubic::Shader shNormal{};
 OctaCubic::Shader shShadowMap{};
 OctaCubic::Shader shDebugDepth{};
-OctaCubic::Shader shCoord{};
 OctaCubic::Shader shDebugFrameBuffer{};
 OctaCubic::Shader shHighlightBlock{};
 
@@ -80,7 +79,6 @@ int main() {
     shNormal.compile("src/shaders/normal_v.glsl", "src/shaders/normal_f.glsl");
     shShadowMap.compile("src/shaders/shadowMap_v.glsl", "src/shaders/shadowMap_f.glsl");
     shDebugDepth.compile("src/shaders/debug_depth_v.glsl", "src/shaders/debug_depth_f.glsl");
-    shCoord.compile("src/shaders/coord_v.glsl", "src/shaders/coord_f.glsl");
     shDebugFrameBuffer.compile("src/shaders/frameBuffer_v.glsl", "src/shaders/frameBuffer_f.glsl");
     shHighlightBlock.compile("src/shaders/highlightBlock_v.glsl", "src/shaders/highlightBlock_f.glsl");
 
@@ -113,7 +111,6 @@ int main() {
     if (!player.generatePlayerSpawn()) { return -1; }
 
     setupDepthMap();
-    setupBlockCoordMap();
     setupTextures();
     setupBuffers(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque);
     setupBuffers(vaoTerrainWater, vboTerrainWater, eboTerrainWater);
@@ -149,29 +146,50 @@ int main() {
         if (timeDiff >= 1.0 / 30.0) {
             second = timeDiff / frameCounter;
         }
-        // Update player
+        // Update player location and rotation
         player.updateLocation(static_cast<float>(second), playerMoveForward, playerMoveRight, playerMoveUp);
         player.updateRotation(cursorDeltaX, cursorDeltaY, camRotSensitivity);
+        // Player Aiming
+        const glm::vec3 posPlayerEye = player.location + glm::vec3{0, player.eyeHeight, 0};
+        const OctaCubic::CoordinatesAndFace aimBlockInfo = world.lineTraceToFace(posPlayerEye, player.directionLooking, 10.0f);
+        player.isAimingAtSomeBlock = aimBlockInfo.isHit;
+        player.aimingAtBlockCoord = glm::vec3{
+            static_cast<float>(aimBlockInfo.x),
+            static_cast<float>(aimBlockInfo.y),
+            static_cast<float>(aimBlockInfo.z)
+        };
+        player.aimingAtBlockFace = aimBlockInfo.f;
         // Destroy & place block
-        const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
-        const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
-        const int aZ = static_cast<int>(player_ptr->aimingAtBlockCoord.z);
-        bool blockChanged = false;
-        if (mouseButtonLeftPressDown) {
-            blockChanged = world.setBlockId(aX, aY, aZ, 0) >= 0;
-        }
-        if (mouseButtonRightPressDown) {
-            blockChanged = world.setBlockId(aX, aY + 1, aZ, 2) >= 0;
-        }
-        if (blockChanged) {
-            worldVertCount = 0;
-            clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-            clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-            genBuffVtxWorld();
-            bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque,
-                       buffVtxTerrainOpaque, buffIdxTerrainOpaque);
-            bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater,
-                       buffVtxTerrainWater, buffIdxTerrainWater);
+        if (isFirstPersonView) {
+            const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
+            const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
+            const int aZ = static_cast<int>(player_ptr->aimingAtBlockCoord.z);
+            bool blockChanged = false;
+            if (mouseButtonLeftPressDown) {
+                blockChanged = world.setBlockId(aX, aY, aZ, 0) >= 0;
+            }
+            if (mouseButtonRightPressDown) {
+                int pX = aX, pY = aY, pZ = aZ;
+                switch (player_ptr->aimingAtBlockFace) {
+                    case OctaCubic::xPos: pX += 1; break;
+                    case OctaCubic::xNeg: pX -= 1; break;
+                    case OctaCubic::yPos: pY += 1; break;
+                    case OctaCubic::yNeg: pY -= 1; break;
+                    case OctaCubic::zPos: pZ += 1; break;
+                    case OctaCubic::zNeg: pZ -= 1; break;
+                }
+                blockChanged = world.setBlockId(pX, pY, pZ, 2) >= 0;
+            }
+            if (blockChanged) {
+                worldVertCount = 0;
+                clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+                clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
+                genBuffVtxWorld();
+                bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque,
+                           buffVtxTerrainOpaque, buffIdxTerrainOpaque);
+                bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater,
+                           buffVtxTerrainWater, buffIdxTerrainWater);
+            }
         }
         /* End handling game logics */
 
@@ -377,33 +395,6 @@ void drawVertices(OctaCubic::Player& player) {
                                             5 * (float)world.worldDimMax);
 
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fboBlockCoordMap);
-    glClearColor(1.0, 1.0, 1.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    shCoord.use();
-    shCoord.setFloat("worldMaxDim", (float)world.worldDimMax);
-    shCoord.setVec3("playerCoord", player_ptr->location);
-    drawTerrain(vaoTerrainOpaque, false, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
-
-    unsigned char pixel[4];
-    glReadPixels(windowWidth / 2, windowHeight / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-    player_ptr->aimingAtBlockCoord.x = (float)(pixel[0] - 16 + (int)floor(player_ptr->location.x));
-    player_ptr->aimingAtBlockCoord.y = (float)(pixel[1] - 16 + (int)floor(player_ptr->location.y));
-    player_ptr->aimingAtBlockCoord.z = (float)(pixel[2] - 16 + (int)floor(player_ptr->location.z));
-    player_ptr->isAimingAtSomeBlock = player_ptr->aimingAtBlockCoord.x < world.worldDimMax;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    if (showBlockCoord) {
-        glViewport(0, 0, windowWidth, windowHeight);
-        glClear(GL_COLOR_BUFFER_BIT);
-        shDebugFrameBuffer.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texBlockCoordMap);
-        renderQuad();
-        return;
-    }
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texBlocks);
     glActiveTexture(GL_TEXTURE1);
@@ -583,28 +574,6 @@ void setupDepthMap() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void setupBlockCoordMap() {
-    glGenFramebuffers(1, &fboBlockCoordMap);
-    glBindFramebuffer(GL_FRAMEBUFFER, fboBlockCoordMap);
-
-    glGenTextures(1, &texBlockCoordMap);
-    glBindTexture(GL_TEXTURE_2D, texBlockCoordMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                 nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texBlockCoordMap, 0);
-
-    // bind Render buffer to enable depth testing
-    glGenRenderbuffers(1, &rboBlockCoordMap);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboBlockCoordMap);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboBlockCoordMap);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 
 // Debugging
 void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
@@ -629,19 +598,50 @@ void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     ImGui::Text("MS: %.1f", ImGui::GetIO().Framerate > 0 ? 1000.0f / ImGui::GetIO().Framerate : 0.0f);
     ImGui::Text("%u Vertices", worldVertCount);
-    ImGui::Text("Player @ %.1f %.1f %.1f",
+    ImGui::Text("Player: %.1f %.1f %.1f",
                 player_ptr_local->location.x,
                 player_ptr_local->location.y,
                 player_ptr_local->location.z);
     ImGui::Text("Yaw: %.1f Pitch: %.1f",
                 player_ptr_local->yaw, player_ptr_local->pitch);
-    if (player_ptr_local->isAimingAtSomeBlock)
-        ImGui::Text("Aiming @ %d %d %d", 
-                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.x)),
-                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.y)),
-                static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.z)));
+    ImGui::Text("Looking: %.1f %.1f %.1f",
+                player_ptr_local->directionLooking.x,
+                player_ptr_local->directionLooking.y,
+                player_ptr_local->directionLooking.z);
+    if (player_ptr_local->isAimingAtSomeBlock) {
+        std::string blockFaceName;
+        switch (player_ptr_local->aimingAtBlockFace) {
+            case OctaCubic::xPos: blockFaceName = "X+"; break;
+            case OctaCubic::xNeg: blockFaceName = "X-"; break;
+            case OctaCubic::yPos: blockFaceName = "Y+"; break;
+            case OctaCubic::yNeg: blockFaceName = "Y-"; break;
+            case OctaCubic::zPos: blockFaceName = "Z+"; break;
+            case OctaCubic::zNeg: blockFaceName = "Z-"; break;
+        }
+        ImGui::Text("Aiming: %d %d %d / %s", 
+                    static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.x)),
+                    static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.y)),
+                    static_cast<int>(floor(player_ptr_local->aimingAtBlockCoord.z)),
+                    blockFaceName.c_str());
+    }
     else
-        ImGui::Text("Aiming @ Nothing");
+        ImGui::Text("Aiming: Nothing");
+
+    { // Draw crosshair
+        ImGuiIO& io = ImGui::GetIO();
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+
+        ImVec2 center = ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
+        float size = 16.0f;
+        ImU32 color = IM_COL32(255, 255, 255, 255); // white
+        float thickness = 2.0f;
+
+        // Horizontal line
+        drawList->AddLine(ImVec2(center.x - size, center.y), ImVec2(center.x + size, center.y), color, thickness);
+
+        // Vertical line
+        drawList->AddLine(ImVec2(center.x, center.y - size), ImVec2(center.x, center.y + size), color, thickness);
+    }
 
     ImGui::End();
 }

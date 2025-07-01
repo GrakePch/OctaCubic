@@ -205,8 +205,6 @@
     <Content Include="include\imgui\misc\fonts\Roboto-Medium.ttf" />
     <Content Include="include\imgui\misc\freetype\README.md" />
     <Content Include="include\imgui\misc\README.txt" />
-    <Content Include="src\shaders\coord_f.glsl" />
-    <Content Include="src\shaders\coord_v.glsl" />
     <Content Include="src\shaders\debug_depth_f.glsl" />
     <Content Include="src\shaders\debug_depth_v.glsl" />
     <Content Include="src\shaders\diffuse_f.glsl" />

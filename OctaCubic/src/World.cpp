@@ -1,6 +1,7 @@
 ﻿#include "World.h"
 
 #include <ctime>
+#include <vector>
 
 #include "perlin.h"
 
@@ -89,4 +90,109 @@ bool World::isBlockOpaque(const int blockId) {
 
 bool World::isBlockOpaqueAtCoord(const int x, const int y, const int z) const {
     return isBlockOpaque(getBlockId(x, y, z));
+}
+
+glm::ivec3 World::insideBlockCoordinates(const glm::vec3 pos) {
+    const int coordX = static_cast<int>(floor(pos.x));
+    const int coordY = static_cast<int>(floor(pos.y));
+    const int coordZ = static_cast<int>(floor(pos.z));
+    return glm::ivec3{coordX, coordY, coordZ};
+}
+
+CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3 dir, const float len) const {
+    const glm::vec3 end = start + dir * len;
+    glm::vec3 hitPlainX;
+    glm::vec3 hitPlainY;
+    glm::vec3 hitPlainZ;
+    CoordinatesAndFace hitBlockInX;
+    CoordinatesAndFace hitBlockInY;
+    CoordinatesAndFace hitBlockInZ;
+    { // Compute hit block in X-axis face
+        const int deltaX = end.x > start.x ? 1 : -1;
+        const int startX = (int)ceil(start.x);
+        const int endX = (int)floor(end.x);
+        for (int x = startX; deltaX > 0 ? x <= endX : x >= endX; x += deltaX) {
+            const float t = ((float)x - start.x) / dir.x;
+            if (t < 0) continue;
+            const float y = start.y + t * dir.y;
+            const float z = start.z + t * dir.z;
+            const glm::vec3 currentPos{x, y, z};
+            glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
+            if (dir.x < 0) currentBlock.x -= 1;
+            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+                hitPlainX = currentPos;
+                hitBlockInX = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.x < 0 ? xPos : xNeg, true);
+                break;
+            }
+        }
+    }
+    { // Compute hit block in Y-axis face
+        const int deltaY = end.y > start.y ? 1 : -1;
+        const int startY = (int)ceil(start.y);
+        const int endY = (int)floor(end.y);
+        for (int y = startY; deltaY > 0 ? y <= endY : y >= endY; y += deltaY) {
+            const float t = ((float)y - start.y) / dir.y;
+            if (t < 0) continue;
+            const float x = start.x + t * dir.x;
+            const float z = start.z + t * dir.z;
+            const glm::vec3 currentPos{x, y, z};
+            glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
+            if (dir.y < 0) currentBlock.y -= 1;
+            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+                hitPlainY = currentPos;
+                hitBlockInY = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.y < 0 ? yPos : yNeg, true);
+                break;
+            }
+        }
+    }
+    { // Compute hit block in Z-axis face
+        const int deltaZ = end.z > start.z ? 1 : -1;
+        const int startZ = (int)ceil(start.z);
+        const int endZ = (int)floor(end.z);
+        for (int z = startZ; deltaZ > 0 ? z <= endZ : z >= endZ; z += deltaZ) {
+            const float t = ((float)z - start.z) / dir.z;
+            if (t < 0) continue;
+            const float x = start.x + t * dir.x;
+            const float y = start.y + t * dir.y;
+            const glm::vec3 currentPos{x, y, z};
+            glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
+            if (dir.z < 0) currentBlock.z -= 1;
+            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+                hitPlainZ = currentPos;
+                hitBlockInZ = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.z < 0 ? zPos : zNeg, true);
+                break;
+            }
+        }
+    }
+    // Compare hit blocks and return the closest one
+    if (hitBlockInX.isHit && hitBlockInY.isHit && hitBlockInZ.isHit) {
+        const float distX = glm::length(hitPlainX - start);
+        const float distY = glm::length(hitPlainY - start);
+        const float distZ = glm::length(hitPlainZ - start);
+        if (distX < distY && distX < distZ) return hitBlockInX;
+        if (distY < distX && distY < distZ) return hitBlockInY;
+        return hitBlockInZ;
+    }
+    if (hitBlockInX.isHit && hitBlockInY.isHit) {
+        const float distX = glm::length(hitPlainX - start);
+        const float distY = glm::length(hitPlainY - start);
+        if (distX < distY) return hitBlockInX;
+        return hitBlockInY;
+    }
+    if (hitBlockInX.isHit && hitBlockInZ.isHit) {
+        const float distX = glm::length(hitPlainX - start);
+        const float distZ = glm::length(hitPlainZ - start);
+        if (distX < distZ) return hitBlockInX;
+        return hitBlockInZ;
+    }
+    if (hitBlockInY.isHit && hitBlockInZ.isHit) {
+        const float distY = glm::length(hitPlainY - start);
+        const float distZ = glm::length(hitPlainZ - start);
+        if (distY < distZ) return hitBlockInY;
+        return hitBlockInZ;
+    }
+    if (hitBlockInX.isHit) return hitBlockInX;
+    if (hitBlockInY.isHit) return hitBlockInY;
+    if (hitBlockInZ.isHit) return hitBlockInZ;
+    return hitBlockInX;
 }

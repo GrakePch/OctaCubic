@@ -15,9 +15,11 @@ namespace OctaCubic
         float eyeHeight = 1.62f;
         glm::vec3 location{0, 72, 0};
         glm::vec3 aimingAtBlockCoord{0, 0, 0};
+        face aimingAtBlockFace = xPos;
         bool isAimingAtSomeBlock = false;
         float pitch = 0;
-        float yaw = 0; // yaw = 0 facing x+
+        float yaw = 0; // yaw = 0 facing z-; yaw = 90 facing x+
+        glm::vec3 directionLooking{1, 0, 0};
         bool isSprinting = false;
         bool isFloating = false;
         float speedWalk = 4.317f;
@@ -226,6 +228,9 @@ namespace OctaCubic
             yaw += deltaX * sensitivity * .5f;
             if (yaw >= 180) yaw -= 360;
             if (yaw < -180) yaw += 360;
+            directionLooking.x = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+            directionLooking.y = sin(glm::radians(pitch));
+            directionLooking.z = -cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         }
 
         glm::mat4 getCameraViewMat4() const {
