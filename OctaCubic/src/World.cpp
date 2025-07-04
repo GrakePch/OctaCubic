@@ -3,92 +3,58 @@
 #include <ctime>
 #include <vector>
 
-#include "perlin.h"
+extern size_t worldVertCount;
 
 using namespace OctaCubic;
 
-World::World() {
-    worldDimX = static_cast<int>(world.size());
-    worldDimZ = static_cast<int>(world[0].size());
-    worldDimY = static_cast<int>(world[0][0].size());
-    worldDimMax = std::max(worldDimX, std::max(worldDimY, worldDimZ));
-    worldCenter = glm::vec3{
-        static_cast<float>(worldDimX) / 2,
-        static_cast<float>(worldDimY) / 4,
-        static_cast<float>(worldDimZ) / 2
-    };
-}
+World::World() = default;
 
 void World::randomizeSeed() {
     srand(static_cast<int>(time(nullptr)));
 }
 
-
-void World::generate() {
-    const int perlinSeed = rand();
-    const auto AltitudeSeaSurfaceF = static_cast<float>(altitudeSeaSurface);
-    for (int x = 0; x < worldDimX; ++x) {
-        for (int z = 0; z < worldDimZ; ++z) {
-            float surfaceHeightF =
-                (perlin(perlinSeed, static_cast<float>(x) / 32, static_cast<float>(z) / 32) * .5f + .5f) * 32
-                + (perlin(perlinSeed, static_cast<float>(x) / 16, static_cast<float>(z) / 16) * .5f) * 12
-                + 10;
-            // Higher mountains
-            if (surfaceHeightF > AltitudeSeaSurfaceF + 5) {
-                surfaceHeightF = AltitudeSeaSurfaceF + 5 + (surfaceHeightF - AltitudeSeaSurfaceF - 5) * 2;
-            }
-            // Deeper water
-            if (surfaceHeightF < AltitudeSeaSurfaceF - 3) {
-                surfaceHeightF = AltitudeSeaSurfaceF - 3 - (AltitudeSeaSurfaceF - 3 - surfaceHeightF) * 2;
-            }
-            // General Terrain
-            for (int y = 0; y < worldDimY; ++y) {
-                const auto yF = static_cast<float>(y);
-                world[x][z][y] = y == 0
-                                     ? 1 // Bedrock @ y = 0
-                                     : yF < surfaceHeightF - 4
-                                     ? 2 // Stone
-                                     : yF < surfaceHeightF - 1
-                                     ? 3 // Dirt
-                                     : yF < surfaceHeightF
-                                     // For the solid surface: below sea+2 -> Sand; below sea+12 -> Grass; above -> Snow
-                                     ? surfaceHeightF > AltitudeSeaSurfaceF + 2
-                                           ? surfaceHeightF > AltitudeSeaSurfaceF + 12
-                                                 ? 6
-                                                 : 4
-                                           : 5
-                                     // Above the solid surface: below sea -> Water; above -> Air
-                                     : yF > AltitudeSeaSurfaceF
-                                     ? 0
-                                     : 10;
-            }
-        }
-    }
+int World::generateSeed() {
+    seed_ = rand();
+    return seed_;
 }
 
 bool World::isOutOfBound(const int x, const int y, const int z) const {
-    return x < 0 || y < 0 || z < 0 || x >= worldDimX || y >= worldDimY || z >= worldDimZ;
+    if (y < 0 || y >= Chunk::height)
+        return true; // Out of bound in Y-axis
+    return false; // TODO: what if run out of chunk in x and z directions?
 }
 
-int World::getBlockId(const int x, const int y, const int z) const {
+int World::getBlockId(const int x, const int y, const int z) {
+    const glm::ivec3 coordWorld{x, y, z};
     if (isOutOfBound(x, y, z))
         return -1; // Out of bound
-    return world[x][z][y];
+    const chunk_coord cc = getCoordChunk(coordWorld);
+    const Chunk* ptr_chunk = getChunk(cc);
+    if (!ptr_chunk) {
+        return -1; // Chunk not found
+    }
+    const glm::ivec3 coordLocal = getCoordLocalToChunk(coordWorld);
+    return ptr_chunk->getBlockId(coordLocal);
 }
 
-int World::setBlockId(const int x, const int y, const int z, const int blockId) {
+int World::setBlockId(const int x, const int y, const int z, const uint8_t blockId) {
+    const glm::ivec3 coordWorld{x, y, z};
     if (isOutOfBound(x, y, z))
         return -1; // Out of bound
-    if (world[x][z][y] == blockId) return -2; // No change
-    world[x][z][y] = blockId;
-    return blockId;
+    const chunk_coord cc = getCoordChunk(coordWorld);
+    Chunk* ptr_chunk = getChunk(cc);
+    if (!ptr_chunk) {
+        return -1; // Chunk not found
+    }
+    const glm::ivec3 coordLocal = getCoordLocalToChunk(coordWorld);
+    return ptr_chunk->setBlockId(coordLocal, blockId);
 }
 
 bool World::isBlockOpaque(const int blockId) {
     return blockId != 0 && blockId != 10;
 }
 
-bool World::isBlockOpaqueAtCoord(const int x, const int y, const int z) const {
+bool World::isBlockOpaqueAtCoord(const int x, const int y, const int z) {
     return isBlockOpaque(getBlockId(x, y, z));
 }
 
@@ -99,7 +65,7 @@ glm::ivec3 World::insideBlockCoordinates(const glm::vec3 pos) {
     return glm::ivec3{coordX, coordY, coordZ};
 }
 
-CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3 dir, const float len) const {
+CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3 dir, const float len) {
     const glm::vec3 end = start + dir * len;
     glm::vec3 hitPlainX;
     glm::vec3 hitPlainY;
@@ -107,7 +73,8 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
     CoordinatesAndFace hitBlockInX;
     CoordinatesAndFace hitBlockInY;
     CoordinatesAndFace hitBlockInZ;
-    { // Compute hit block in X-axis face
+    {
+        // Compute hit block in X-axis face
         const int deltaX = end.x > start.x ? 1 : -1;
         const int startX = (int)ceil(start.x);
         const int endX = (int)floor(end.x);
@@ -121,12 +88,14 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             if (dir.x < 0) currentBlock.x -= 1;
             if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
                 hitPlainX = currentPos;
-                hitBlockInX = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.x < 0 ? xPos : xNeg, true);
+                hitBlockInX = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
+                                                 dir.x < 0 ? xPos : xNeg, true);
                 break;
             }
         }
     }
-    { // Compute hit block in Y-axis face
+    {
+        // Compute hit block in Y-axis face
         const int deltaY = end.y > start.y ? 1 : -1;
         const int startY = (int)ceil(start.y);
         const int endY = (int)floor(end.y);
@@ -140,12 +109,14 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             if (dir.y < 0) currentBlock.y -= 1;
             if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
                 hitPlainY = currentPos;
-                hitBlockInY = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.y < 0 ? yPos : yNeg, true);
+                hitBlockInY = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
+                                                 dir.y < 0 ? yPos : yNeg, true);
                 break;
             }
         }
     }
-    { // Compute hit block in Z-axis face
+    {
+        // Compute hit block in Z-axis face
         const int deltaZ = end.z > start.z ? 1 : -1;
         const int startZ = (int)ceil(start.z);
         const int endZ = (int)floor(end.z);
@@ -159,7 +130,8 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             if (dir.z < 0) currentBlock.z -= 1;
             if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
                 hitPlainZ = currentPos;
-                hitBlockInZ = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z, dir.z < 0 ? zPos : zNeg, true);
+                hitBlockInZ = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
+                                                 dir.z < 0 ? zPos : zNeg, true);
                 break;
             }
         }
@@ -195,4 +167,83 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
     if (hitBlockInY.isHit) return hitBlockInY;
     if (hitBlockInZ.isHit) return hitBlockInZ;
     return hitBlockInX;
+}
+
+glm::ivec3 World::getCoordLocalToChunk(const glm::ivec3 coordWorld) {
+    return glm::ivec3{
+        (coordWorld.x % Chunk::width + Chunk::width) % Chunk::width,
+        coordWorld.y,
+        (coordWorld.z % Chunk::width + Chunk::width) % Chunk::width
+    };
+}
+
+glm::ivec3 World::getCoordChunk(const glm::ivec3 coordWorld) {
+    return glm::ivec3{
+        coordWorld.x < 0 ? (coordWorld.x - Chunk::width + 1) / Chunk::width : coordWorld.x / Chunk::width,
+        0,
+        coordWorld.z < 0 ? (coordWorld.z - Chunk::width + 1) / Chunk::width : coordWorld.z / Chunk::width
+    };
+}
+
+void World::smartRenderingPreprocess(const glm::ivec3 center, const int viewDistance) {
+    const glm::ivec3 centerChunk = getCoordChunk(center);
+    const int minX = centerChunk.x - viewDistance;
+    const int maxX = centerChunk.x + viewDistance;
+    const int minZ = centerChunk.z - viewDistance;
+    const int maxZ = centerChunk.z + viewDistance;
+    // Free GPU memory of chunks out of view
+    std::vector<Chunk*> chunksToFree;
+    for (auto c : Chunk::chunkInGPUSet) {
+        if (c.x < minX || c.x > maxX || c.z < minZ || c.z > maxZ) {
+            chunksToFree.push_back(getChunk(c));
+        }
+    }
+    for (Chunk* chunk : chunksToFree) {
+        if (chunk != nullptr) {
+            chunk->freeGPU();
+        }
+    }
+    // Render chunks in view
+    renderWaitingQueue_.clear();
+    worldVertCount = 0;
+    for (int x = minX; x <= maxX; ++x) {
+        for (int z = minZ; z <= maxZ; ++z) {
+            const chunk_coord chunkCoord{x, 0, z};
+            Chunk* ptr_chunk = getChunk(chunkCoord);
+            if (ptr_chunk == nullptr) {
+                Chunk newChunk(x, z);
+                newChunk.genTerrain(seed_);
+                chunkMap_.emplace(chunkCoord, std::move(newChunk));
+                ptr_chunk = &chunkMap_[chunkCoord];
+            }
+            if (ptr_chunk->isDirty) ptr_chunk->buildMesh();
+            if (!ptr_chunk->isInGPU()) ptr_chunk->sendToGPU();
+            renderWaitingQueue_.push_back(ptr_chunk);
+            worldVertCount += ptr_chunk->getNumVertices();
+        }
+    }
+}
+
+void World::renderInQueueOpaque() {
+    for (const auto ptr_chunk : renderWaitingQueue_) {
+        ptr_chunk->renderOpaque();
+    }
+}
+
+void World::renderInQueueWater() {
+    for (const auto ptr_chunk : renderWaitingQueue_) {
+        ptr_chunk->renderWater();
+    }
+}
+
+bool World::isChunkCreated(const chunk_coord c) {
+    return chunkMap_.find(c) != chunkMap_.end();
+}
+
+Chunk* World::getChunk(const chunk_coord c) {
+    const auto it = chunkMap_.find(c);
+    if (it != chunkMap_.end()) {
+        return &it->second;
+    }
+    return nullptr;
 }

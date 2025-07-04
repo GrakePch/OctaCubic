@@ -148,6 +148,7 @@
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="include\imgui\misc\cpp\imgui_stdlib.cpp" />
+    <ClCompile Include="src\Chunk.cpp" />
     <ClCompile Include="src\debugQuad.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\OctaCubic.cpp" />
@@ -157,11 +158,11 @@
     <ClCompile Include="src\World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Chunk.h" />
     <ClInclude Include="include\Cube.h" />
     <ClInclude Include="include\debugQuad.h" />
     <ClInclude Include="include\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="include\imgui\backends\imgui_impl_opengl3.h" />
-    <ClInclude Include="include\imgui\backends\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_internal.h" />
@@ -177,7 +178,6 @@
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\stb_image.h" />
     <ClInclude Include="include\utils.h" />
-    <ClInclude Include="include\utils_render.h" />
     <ClInclude Include="include\World.h" />
   </ItemGroup>
   <ItemGroup>

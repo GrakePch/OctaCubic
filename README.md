@@ -4,7 +4,7 @@
 This is a project made in C++ with OpenGL. The goal is to create a small scene that mimics the Minecraft world.
 
 Main Features:
--	Terrain Generation
+- **[New] Chunk-based** Terrain Generation
 -	Blinn-Phone lighting model
 -   Shadow Mapping
 -	Simple wave simulation
@@ -63,11 +63,11 @@ Used libraries: GLFW, Glad, glm, stb.
 
 - [ ] Rework sun
 - [ ] Light intensity changes with sun position
-- [ ] A bigger world (procedurally loaded and unloaded chunks)
+- [x] A bigger world (procedurally loaded and unloaded chunks)
 - [ ] Screen-space reflection (for the water)
 - [ ] Ambient occlusion
 - [ ] Anti-aliasing
-- [ ] Controllable player
+- [x] Controllable player
   - [x] Movements
   - [x] Collision
   - [x] Block placing & destroying

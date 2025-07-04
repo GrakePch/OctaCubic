@@ -85,14 +85,6 @@ inline void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
     }
     if (key == GLFW_KEY_F11 && action == GLFW_PRESS) toggleFullScreen(window);
     if (key == GLFW_KEY_F12 && action == GLFW_PRESS) {
-        world.generate();
-        worldVertCount = 0;
-        clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-        clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-        genBuffVtxWorld();
-        bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque, buffVtxTerrainOpaque, buffIdxTerrainOpaque);
-        bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater, buffVtxTerrainWater, buffIdxTerrainWater);
-        if (player_ptr) player_ptr->generatePlayerSpawn();
     }
 }
 
@@ -128,7 +120,11 @@ inline void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
 }
 
 inline void cursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
-    if (!cursorControlCam) return;
+    if (!cursorControlCam) {
+        cursorDeltaX = 0;
+        cursorDeltaY = 0;
+        return;
+    }
     const float halfWidth = static_cast<float>(windowWidth) / 2;
     const float halfHeight = static_cast<float>(windowHeight) / 2;
     cursorDeltaX = static_cast<float>(xPos) - halfWidth;

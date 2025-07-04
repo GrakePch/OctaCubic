@@ -4,6 +4,49 @@
 
 namespace OctaCubic
 {
+    float const Quad::unit_x_pos[] = {
+        // positions      // normals         // texture Coords
+        1.0f, 0.0f, 1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    };
+    float const Quad::unit_x_neg[] = {
+        // positions      // normals         // texture Coords
+        0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    };
+    float const Quad::unit_y_pos[] = {
+        // positions      // normals         // texture Coords
+        0.0f, 1.0f, 1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 0.0f, +1.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    float const Quad::unit_y_neg[] = {
+        // positions      // normals         // texture Coords
+        0.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    float const Quad::unit_z_pos[] = {
+        // positions      // normals         // texture Coords
+        0.0f, 1.0f, 1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f, 0.0f, +1.0f, 1.0f, 1.0f,
+    };
+    float const Quad::unit_z_neg[] = {
+        // positions      // normals         // texture Coords
+        0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+    };
+    
     float quadXPos[] = {
         // positions         // normals         // texture Coords
         +1.0f, -1.0f, +1.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f,

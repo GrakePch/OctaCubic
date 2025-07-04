@@ -21,5 +21,12 @@ namespace OctaCubic
         void renderQuad();
         float* getVertices();
         float* getVerticesWithTrans(const glm::mat4& transform) const;
+        
+        static const float unit_x_pos[32];
+        static const float unit_x_neg[32];
+        static const float unit_y_pos[32];
+        static const float unit_y_neg[32];
+        static const float unit_z_pos[32];
+        static const float unit_z_neg[32];
     };
 }

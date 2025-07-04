@@ -15,12 +15,10 @@
 #include "World.h"
 #include "debugQuad.h"
 #include "utils.h"
-#include "utils_render.h"
 #include "inputs.h"
 
 #define WATER_SURFACE_CUBE_HEIGHT 0.875
 #define SEA_SURFACE_ALTITUDE 23
-#define NUM_OF_VERT_S_ATTR 12
 
 
 OctaCubic::Shader shader{};
@@ -35,7 +33,6 @@ OctaCubic::World world{};
 OctaCubic::Player* player_ptr = nullptr;
 
 OctaCubic::Cube unitCube{true};
-
 
 int main() {
     if (!glfwInit()) {
@@ -95,29 +92,25 @@ int main() {
 
     printf("%s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
-    // Light Position Transform
-    auto lightPosMat = glm::mat4(1.0f);
-    lightPosMat = glm::translate(lightPosMat, world.worldCenter); // Move to world center
-    lightPosMat = glm::scale(lightPosMat, glm::vec3((float)world.worldDimMax));
-    lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
-
+    // Initialize World
     OctaCubic::World::randomizeSeed();
     world.altitudeSeaSurface = SEA_SURFACE_ALTITUDE;
-    world.generate();
 
+    // Initialize Player
     OctaCubic::Player player{};
     player_ptr = &player;
     player.world_ptr = &world;
     if (!player.generatePlayerSpawn()) { return -1; }
 
+    
+    // Initialize Light Position Transform
+    auto lightPosMat = glm::mat4(1.0f);
+    lightPosMat = glm::translate(lightPosMat, player_ptr->location); // Move to player location
+    lightPosMat = glm::scale(lightPosMat, glm::vec3((float)world.worldDimMax));
+    lightPosition = lightPosMat * glm::vec4(lightPosition, 1);
+
     setupDepthMap();
     setupTextures();
-    setupBuffers(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque);
-    setupBuffers(vaoTerrainWater, vboTerrainWater, eboTerrainWater);
-
-    genBuffVtxWorld();
-    bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque, buffVtxTerrainOpaque, buffIdxTerrainOpaque);
-    bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater, buffVtxTerrainWater, buffIdxTerrainWater);
 
     // Setup ImGui context
     IMGUI_CHECKVERSION();
@@ -145,6 +138,13 @@ int main() {
         frameCounter++;
         if (timeDiff >= 1.0 / 30.0) {
             second = timeDiff / frameCounter;
+        }
+        // Observer mode camera controls
+        if (!isFirstPersonView && cursorControlCam) {
+            camValPitch = glm::clamp<float>(camValPitch + cursorDeltaY * camRotSensitivity, -90, 90);
+            camValYaw += cursorDeltaX * camRotSensitivity;
+            if (camValYaw >= 180) camValYaw -= 360;
+            if (camValYaw < -180) camValYaw += 360;
         }
         // Update player location and rotation
         player.updateLocation(static_cast<float>(second), playerMoveForward, playerMoveRight, playerMoveUp);
@@ -180,16 +180,6 @@ int main() {
                 }
                 blockChanged = world.setBlockId(pX, pY, pZ, 2) >= 0;
             }
-            if (blockChanged) {
-                worldVertCount = 0;
-                clearVerticesBuffer(buffVtxTerrainOpaque, buffIdxTerrainOpaque, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-                clearVerticesBuffer(buffVtxTerrainWater, buffIdxTerrainWater, VERTICES_BUFFER_SIZE, INDICES_BUFFER_SIZE);
-                genBuffVtxWorld();
-                bufferData(vaoTerrainOpaque, vboTerrainOpaque, eboTerrainOpaque,
-                           buffVtxTerrainOpaque, buffIdxTerrainOpaque);
-                bufferData(vaoTerrainWater, vboTerrainWater, eboTerrainWater,
-                           buffVtxTerrainWater, buffIdxTerrainWater);
-            }
         }
         /* End handling game logics */
 
@@ -217,109 +207,9 @@ int main() {
 }
 
 
-// Generate world vertices
-void genBuffVtxWorld() {
-    worldVertCount = 0;
-    genBuffVtxTerrainOpaque();
-    genBuffVtxTerrainWater();
-}
-
-
-void genBuffVtxTerrainOpaque() {
-    int currQuadIdx = 0;
-    for (int x = 0; x < world.worldDimMax; ++x) {
-        for (int z = 0; z < world.worldDimMax; ++z) {
-            for (int y = 0; y < world.worldDimMax; ++y) {
-                int currId = world.getBlockId(x, y, z);
-                // skip air block
-                if (!currId) continue;
-                // skip water
-                if (currId == 10) continue;
-                // skip block that is fully covered from the 6 directions
-                if (x != 0 && x != world.worldDimX - 1 &&
-                    y != 0 && y != world.worldDimY - 1 &&
-                    z != 0 && z != world.worldDimZ - 1 &&
-                    world.isBlockOpaqueAtCoord(x + 1, y, z) && world.isBlockOpaqueAtCoord(x - 1, y, z) &&
-                    world.isBlockOpaqueAtCoord(x, y, z + 1) && world.isBlockOpaqueAtCoord(x, y, z - 1) &&
-                    world.isBlockOpaqueAtCoord(x, y + 1, z) && world.isBlockOpaqueAtCoord(x, y - 1, z))
-                    continue;
-
-                if (x == world.worldDimX - 1 || !world.isBlockOpaqueAtCoord(x + 1, y, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.XPos.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-                if (z == world.worldDimZ - 1 || !world.isBlockOpaqueAtCoord(x, y, z + 1))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.ZPos.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-                if (y == world.worldDimY - 1 || !world.isBlockOpaqueAtCoord(x, y + 1, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.YPos.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-                if (x == 0 || !world.isBlockOpaqueAtCoord(x - 1, y, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.XNeg.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-                if (z == 0 || !world.isBlockOpaqueAtCoord(x, y, z - 1))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.ZNeg.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-                if (y == 0 || !world.isBlockOpaqueAtCoord(x, y - 1, z))
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainOpaque, buffIdxTerrainOpaque, &currQuadIdx,
-                                        unitCube.YNeg.getVertices(), currId, x,
-                                        y, z, worldVertCount);
-            }
-        }
-    }
-}
-
-void genBuffVtxTerrainWater() {
-    int currQuadIdx = 0;
-    for (int x = 0; x < world.worldDimMax; ++x) {
-        for (int z = 0; z < world.worldDimMax; ++z) {
-            for (int y = 0; y < world.worldDimMax; ++y) {
-                int currId = world.getBlockId(x, y, z);
-                // skip not water
-                if (currId != 10) continue;
-
-                // If it is water surface, shrink height to pre-set value
-                glm::mat4 CubePos = glm::mat4(1.0f);
-                if (y == world.worldDimY - 1 || world.getBlockId(x, y + 1, z) != 10)
-                    CubePos = glm::scale(CubePos, glm::vec3{1,WATER_SURFACE_CUBE_HEIGHT, 1});
-
-                // if water face faces to water, not render
-                if (x == world.worldDimX - 1 || world.getBlockId(x + 1, y, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.XPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-                if (z == world.worldDimZ - 1 || world.getBlockId(x, y, z + 1) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.ZPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-                if (y == world.worldDimY - 1 || world.getBlockId(x, y + 1, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.YPos.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-                if (x == 0 || world.getBlockId(x - 1, y, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.XNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-                if (z == 0 || world.getBlockId(x, y, z - 1) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.ZNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-                if (y == 0 || world.getBlockId(x, y - 1, z) != 10)
-                    overwriteVertexBuff(NUM_OF_VERT_S_ATTR, buffVtxTerrainWater, buffIdxTerrainWater, &currQuadIdx,
-                                        unitCube.YNeg.getVerticesWithTrans(CubePos),
-                                        currId, x, y, z, worldVertCount);
-            }
-        }
-    }
-}
-
-
 // Render
 void drawVertices(OctaCubic::Player& player) {
+    world.smartRenderingPreprocess(player_ptr->location, 10);
     // OctaCubic::Quad::vertRenderCount = 0;
 
     // Light Position Transform
@@ -336,7 +226,7 @@ void drawVertices(OctaCubic::Player& player) {
         -(float)world.worldDimMax * .9f,
         (float)world.worldDimMax * .9f,
         near_plane, far_plane);
-    glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), world.worldCenter,
+    glm::mat4 lightView = glm::lookAt(glm::vec3(lightPosMtx * glm::vec4(lightPosition, 1.0f)), player_ptr->location,
                                       glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
@@ -344,7 +234,8 @@ void drawVertices(OctaCubic::Player& player) {
     glBindFramebuffer(GL_FRAMEBUFFER, fboDepthMap);
     glClear(GL_DEPTH_BUFFER_BIT);
     shShadowMap.use();
-    drawTerrain(vaoTerrainOpaque, false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
+    setShaderUniforms(false, nullptr, nullptr, nullptr, &lightSpaceMatrix);
+    world.renderInQueueOpaque();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     if (showLightSpaceDepth) {
@@ -372,19 +263,10 @@ void drawVertices(OctaCubic::Player& player) {
     else {
         // Cam z distance
         camView = glm::translate(camView, {0.0f, 0.0f, -(float)world.worldDimMax * camValDistance});
-        if (cursorControlCam) {
-            camValPitch = glm::clamp<float>(camValPitch + cursorDeltaY * camRotSensitivity, -90, 90);
-            camValYaw += cursorDeltaX * camRotSensitivity;
-            if (camValYaw >= 180) camValYaw -= 360;
-            if (camValYaw < -180) camValYaw += 360;
-        }
         camView = glm::rotate(camView, glm::radians(camValPitch), glm::vec3(1.0f, 0.0f, 0.0f));
         camView = glm::rotate(camView, glm::radians(camValYaw), glm::vec3(0.0f, 1.0f, 0.0f));
-        camView = glm::translate(camView, -world.worldCenter);
+        camView = glm::translate(camView, -player_ptr->location);
     }
-    // Clear cursor delta value
-    cursorDeltaX = 0;
-    cursorDeltaY = 0;
 
     // Perspective Transform
     glm::mat4 projection = glm::perspective(glm::radians(isFirstPersonView
@@ -403,9 +285,11 @@ void drawVertices(OctaCubic::Player& player) {
     updateSkyColor();
 
     shader.use();
-    drawTerrain(vaoTerrainOpaque, false, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    setShaderUniforms(false, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    world.renderInQueueOpaque();
     shWater.use();
-    drawTerrain(vaoTerrainWater, true, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    setShaderUniforms(true, &camView, &projection, &lightPosMtx, &lightSpaceMatrix);
+    world.renderInQueueWater();
 
     // Render Player Aiming Block
     shHighlightBlock.use();
@@ -440,7 +324,7 @@ void drawVertices(OctaCubic::Player& player) {
     unitCube.ZNeg.renderQuad();
 }
 
-void drawTerrain(const unsigned int& vao, bool isWater,
+void setShaderUniforms(bool isWater,
                  const glm::mat4* camView,
                  const glm::mat4* projection,
                  const glm::mat4* lightPosMat,
@@ -469,13 +353,20 @@ void drawTerrain(const unsigned int& vao, bool isWater,
         // No specular lighting and wave
         OctaCubic::Shader::activeShader->setVec4("diffuseColor", glm::vec4{.5, .9, .1, 1});
     }
-
-    glBindVertexArray(vao);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-    glDrawElements(GL_TRIANGLES, INDICES_BUFFER_SIZE, GL_UNSIGNED_INT, 0);
 }
 
 void updateSkyColor() {
+    static float skyColorMap[] = {
+        // time,  r,    g,     b,
+        00.0f, 0.0f, 0.0f, 0.05f, // midnight
+        05.0f, 0.0f, 0.0f, 0.05f,
+        06.0f, 0.9f, 0.5f, 0.20f, // sunrise
+        07.0f, 0.5f, 0.7f, 1.00f,
+        17.0f, 0.5f, 0.7f, 1.00f,
+        18.0f, 0.9f, 0.5f, 0.20f, // sunset
+        19.0f, 0.0f, 0.0f, 0.05f,
+        24.0f, 0.0f, 0.0f, 0.05f, // midnight
+    };
     const float lightPosRotZ_0_180 = remainder(lightPosRotZ + 180.0f, 360);
     const float timeOfDay = lightPosRotZ_0_180 / 360.0f * 24;
     for (int i = 0; i < (int)(sizeof(skyColorMap) / sizeof(float) / 4 - 1); ++i) {
@@ -520,42 +411,6 @@ void setupTextures() {
     shader.setInt("textureRes", texBlocksDimX);
 }
 
-void setupBuffers(unsigned int& vao, unsigned int& vbo, unsigned int& ebo) {
-    // setup plane's Vertex Array Object
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    // Copy the vertices array in a vertex buffer for OpenGL to use
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // Set the vertex attributes pointers
-    /// vec3 vertex's Position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)0);
-    /// vec3 vertex's Normal
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(3 * sizeof(float)));
-    /// vec2 vertex's Texture Coordinates
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(6 * sizeof(float)));
-    /// float vertex's Block Id
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(8 * sizeof(float)));
-    /// vec3 vertex's Block Coordinates
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, NUM_OF_VERT_S_ATTR * sizeof(float), (void*)(9 * sizeof(float)));
-    // Element Buffer Objects
-    glGenBuffers(1, &ebo);
-}
-
-void bufferData(const unsigned int& vao, const unsigned int& vbo, const unsigned int& ebo,
-                const float* verticesBuffer, const unsigned int* indicesBuffer) {
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, VERTICES_BUFFER_SIZE * sizeof(float), verticesBuffer, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES_BUFFER_SIZE * sizeof(unsigned int), indicesBuffer, GL_STATIC_DRAW);
-}
-
 void setupDepthMap() {
     glGenFramebuffers(1, &fboDepthMap);
     glGenTextures(1, &texDepthMap);
@@ -597,7 +452,8 @@ void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
 
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     ImGui::Text("MS: %.1f", ImGui::GetIO().Framerate > 0 ? 1000.0f / ImGui::GetIO().Framerate : 0.0f);
-    ImGui::Text("%u Vertices", worldVertCount);
+    ImGui::Text("%llu Vertices", worldVertCount);
+    ImGui::Text("%llu Chunks in GPU", OctaCubic::Chunk::getNumOfChunksInGPU());
     ImGui::Text("Player: %.1f %.1f %.1f",
                 player_ptr_local->location.x,
                 player_ptr_local->location.y,

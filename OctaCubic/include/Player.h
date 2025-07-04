@@ -23,7 +23,7 @@ namespace OctaCubic
         bool isSprinting = false;
         bool isFloating = false;
         float speedWalk = 4.317f;
-        float speedSprint = 5.612f;
+        float speedSprint = 5.612f * 10;
         float speedJump = 10.0f;
         float gravityAc = -32.0f;
         float currSpeedUp = 0;
@@ -34,13 +34,8 @@ namespace OctaCubic
         Player() = default;
 
         bool blockHasCollision(int x, int y, int z) const {
-            if (x < 0 || y < 0 || z < 0
-                || x >= world_ptr->worldDimX
-                || y >= world_ptr->worldDimY
-                || z >= world_ptr->worldDimZ)
-                return false;
-            const int blockId = world_ptr->world[x][z][y];
-            return blockId != 0 && blockId != 10;
+            const int blockId = world_ptr->getBlockId(x, y, z);
+            return blockId > 0 && blockId != 10;
         }
 
         bool isInAir() const {
@@ -196,7 +191,8 @@ namespace OctaCubic
             if (isFloating) {
                 if (inputUp)
                     moveDistUp = (isSprinting ? speedSprint : speedWalk) * interval * static_cast<float>(inputUp);
-            } else {
+            }
+            else {
                 // Calculate gravity
                 currSpeedUp += gravityAc * interval; // Intended Speed Up
                 moveDistUp = currSpeedUp * interval; // Intended Distance Up
@@ -242,20 +238,11 @@ namespace OctaCubic
         }
 
         bool generatePlayerSpawn() {
-            if (!world_ptr) {
-                printf("Error: Player is not linked with world!");
-                return false;
-            }
-            location.x = floor(world_ptr->worldCenter.x) + .5f;
-            location.z = floor(world_ptr->worldCenter.z) + .5f;
-            int surfaceY;
-            for (surfaceY = 0; surfaceY < world_ptr->worldDimY; ++surfaceY)
-                if (!world_ptr->world
-                    [static_cast<int>(location.x)]
-                    [static_cast<int>(location.z)]
-                    [surfaceY])
-                    break;
-            location.y = static_cast<float>(surfaceY);
+            location.x = 0.5;
+            location.y = 256;
+            location.z = 0.5;
+            printf("Generating player spawn at (%f, %f, %f)\n",
+                   location.x, location.y, location.z);
             return true;
         }
 
