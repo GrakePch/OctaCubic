@@ -89,6 +89,7 @@ int main() {
     glCullFace(GL_FRONT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glfwSwapInterval(0); // Disable VSync
 
     printf("%s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
@@ -125,6 +126,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
 
         // Update inputs
+        cursorDeltaX = cursorDeltaY = 0;
         glfwPollEvents();
         mouseButtonLeftPressDown = mouseButtonLeftPressed && !mouseButtonLeftPressedPrev;
         mouseButtonLeftPressedPrev = mouseButtonLeftPressed;
