@@ -18,28 +18,29 @@ int World::generateSeed() {
     return seed_;
 }
 
-bool World::isOutOfBound(const int x, const int y, const int z) const {
-    if (y < 0 || y >= Chunk::height)
+bool World::isOutOfBound(const glm::ivec3& coordWorld) const {
+    if (coordWorld.y < 0 || coordWorld.y >= Chunk::height)
         return true; // Out of bound in Y-axis
     return false; // TODO: what if run out of chunk in x and z directions?
 }
 
-int World::getBlockId(const int x, const int y, const int z) {
-    const glm::ivec3 coordWorld{x, y, z};
-    if (isOutOfBound(x, y, z))
+int World::getBlockId(const glm::ivec3& coordWorld) {
+    if (isOutOfBound(coordWorld)) {
+        // printf("Out of bound: %d %d %d\n", coordWorld.x, coordWorld.y, coordWorld.z);
         return -1; // Out of bound
+    }
     const chunk_coord cc = getCoordChunk(coordWorld);
     const Chunk* ptr_chunk = getChunk(cc);
     if (!ptr_chunk) {
+        // printf("Chunk not found for chunk coord: %d %d %d\n", cc.x, cc.y, cc.z);
         return -1; // Chunk not found
     }
     const glm::ivec3 coordLocal = getCoordLocalToChunk(coordWorld);
     return ptr_chunk->getBlockId(coordLocal);
 }
 
-int World::setBlockId(const int x, const int y, const int z, const uint8_t blockId) {
-    const glm::ivec3 coordWorld{x, y, z};
-    if (isOutOfBound(x, y, z))
+int World::setBlockId(const glm::ivec3& coordWorld, const uint8_t blockId) {
+    if (isOutOfBound(coordWorld))
         return -1; // Out of bound
     const chunk_coord cc = getCoordChunk(coordWorld);
     Chunk* ptr_chunk = getChunk(cc);
@@ -54,8 +55,8 @@ bool World::isBlockOpaque(const int blockId) {
     return blockId != 0 && blockId != 10;
 }
 
-bool World::isBlockOpaqueAtCoord(const int x, const int y, const int z) {
-    return isBlockOpaque(getBlockId(x, y, z));
+bool World::isBlockOpaqueAtCoord(const glm::ivec3& coordWorld) {
+    return isBlockOpaque(getBlockId(coordWorld));
 }
 
 glm::ivec3 World::insideBlockCoordinates(const glm::vec3 pos) {
@@ -86,7 +87,7 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             const glm::vec3 currentPos{x, y, z};
             glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
             if (dir.x < 0) currentBlock.x -= 1;
-            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+            if (getBlockId(currentBlock) > 0) {
                 hitPlainX = currentPos;
                 hitBlockInX = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
                                                  dir.x < 0 ? xPos : xNeg, true);
@@ -107,7 +108,7 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             const glm::vec3 currentPos{x, y, z};
             glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
             if (dir.y < 0) currentBlock.y -= 1;
-            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+            if (getBlockId(currentBlock) > 0) {
                 hitPlainY = currentPos;
                 hitBlockInY = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
                                                  dir.y < 0 ? yPos : yNeg, true);
@@ -128,7 +129,7 @@ CoordinatesAndFace World::lineTraceToFace(const glm::vec3 start, const glm::vec3
             const glm::vec3 currentPos{x, y, z};
             glm::ivec3 currentBlock = insideBlockCoordinates(currentPos);
             if (dir.z < 0) currentBlock.z -= 1;
-            if (getBlockId(currentBlock.x, currentBlock.y, currentBlock.z) > 0) {
+            if (getBlockId(currentBlock) > 0) {
                 hitPlainZ = currentPos;
                 hitBlockInZ = CoordinatesAndFace(currentBlock.x, currentBlock.y, currentBlock.z,
                                                  dir.z < 0 ? zPos : zNeg, true);
@@ -177,12 +178,20 @@ glm::ivec3 World::getCoordLocalToChunk(const glm::ivec3 coordWorld) {
     };
 }
 
+glm::ivec3 World::getCoordLocalToChunk(const glm::vec3 coordWorld) {
+    return getCoordLocalToChunk(insideBlockCoordinates(coordWorld));
+}
+
 glm::ivec3 World::getCoordChunk(const glm::ivec3 coordWorld) {
     return glm::ivec3{
         coordWorld.x < 0 ? (coordWorld.x - Chunk::width + 1) / Chunk::width : coordWorld.x / Chunk::width,
         0,
         coordWorld.z < 0 ? (coordWorld.z - Chunk::width + 1) / Chunk::width : coordWorld.z / Chunk::width
     };
+}
+
+glm::ivec3 World::getCoordChunk(const glm::vec3 coordWorld) {
+    return getCoordChunk(insideBlockCoordinates(coordWorld));
 }
 
 void World::smartRenderingPreprocess(const glm::ivec3 center, const int viewDistance) {
@@ -206,22 +215,34 @@ void World::smartRenderingPreprocess(const glm::ivec3 center, const int viewDist
     // Render chunks in view
     renderWaitingQueue_.clear();
     worldVertCount = 0;
+    //// Generate chunks in view if it never generated
     for (int x = minX; x <= maxX; ++x) {
         for (int z = minZ; z <= maxZ; ++z) {
             const chunk_coord chunkCoord{x, 0, z};
             Chunk* ptr_chunk = getChunk(chunkCoord);
             if (ptr_chunk == nullptr) {
                 Chunk newChunk(x, z);
+                newChunk.bindWorld(this);
                 newChunk.genTerrain(seed_);
                 chunkMap_.emplace(chunkCoord, std::move(newChunk));
                 ptr_chunk = &chunkMap_[chunkCoord];
             }
+        }
+    }
+    //// After all chunks in view generated, build mesh and send to GPU
+    for (int x = minX; x <= maxX; ++x) {
+        for (int z = minZ; z <= maxZ; ++z) {
+            Chunk* ptr_chunk = getChunk({x, 0, z});
             if (ptr_chunk->isDirty) ptr_chunk->buildMesh();
             if (!ptr_chunk->isInGPU()) ptr_chunk->sendToGPU();
             renderWaitingQueue_.push_back(ptr_chunk);
             worldVertCount += ptr_chunk->getNumVertices();
         }
     }
+}
+
+void World::smartRenderingPreprocess(const glm::vec3 center, const int viewDistance) {
+    smartRenderingPreprocess(insideBlockCoordinates(center), viewDistance);
 }
 
 void World::renderInQueueOpaque() {

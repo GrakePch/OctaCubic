@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <glm/ext/matrix_transform.hpp>
 
+#include "World.h"
 #include "perlin.h"
 #include "Quad.h"
 
@@ -137,6 +138,22 @@ size_t Chunk::getNumVertices() const {
     return numVertices_;
 }
 
+World* Chunk::getWorld() const {
+    return ptr_world_;
+}
+
+void Chunk::bindWorld(World* ptr_world) {
+    ptr_world_ = ptr_world;
+}
+
+glm::ivec3 Chunk::getCoordWorld(const glm::ivec3 coordLocal) const {
+    return glm::ivec3{
+        coordLocal.x + chunkCoord_.x * width,
+        coordLocal.y + chunkCoord_.y * height,
+        coordLocal.z + chunkCoord_.z * width
+    };
+}
+
 /* Private members */
 
 void Chunk::genMeshData() {
@@ -148,20 +165,26 @@ void Chunk::genMeshData() {
             for (int y = 0; y < height; ++y) {
                 const uint8_t blockId = blocks_[x][y][z];
                 if (blockId == 0) continue; // Skip air blocks
+                const int bidXPos = ptr_world_->getBlockId(getCoordWorld({x + 1, y, z}));
+                const int bidYPos = ptr_world_->getBlockId(getCoordWorld({x, y + 1, z}));
+                const int bidZPos = ptr_world_->getBlockId(getCoordWorld({x, y, z + 1}));
+                const int bidXNeg = ptr_world_->getBlockId(getCoordWorld({x - 1, y, z}));
+                const int bidYNeg = ptr_world_->getBlockId(getCoordWorld({x, y - 1, z}));
+                const int bidZNeg = ptr_world_->getBlockId(getCoordWorld({x, y, z - 1}));
                 if (blockId == 10) {
                     // Water block
                     // TODO: If it is water surface, shrink height to pre-set value
-                    if (x == width - 1 || getBlockId({x + 1, y, z}) != 10)
+                    if (bidXPos != 10)
                         genQuadData(meshDataWater_, Quad::unit_x_pos, blockId, x, y, z); // X+ face exposed
-                    if (y == height - 1 || getBlockId({x, y + 1, z}) != 10)
+                    if (bidYPos != 10)
                         genQuadData(meshDataWater_, Quad::unit_y_pos, blockId, x, y, z); // Y+ face exposed
-                    if (z == width - 1 || getBlockId({x, y, z + 1}) != 10)
+                    if (bidZPos != 10)
                         genQuadData(meshDataWater_, Quad::unit_z_pos, blockId, x, y, z); // Z+ face exposed
-                    if (x == 0 || getBlockId({x - 1, y, z}) != 10)
+                    if (bidXNeg != 10)
                         genQuadData(meshDataWater_, Quad::unit_x_neg, blockId, x, y, z); // X- face exposed
-                    if (y == 0 || getBlockId({x, y - 1, z}) != 10)
+                    if (bidYNeg != 10)
                         genQuadData(meshDataWater_, Quad::unit_y_neg, blockId, x, y, z); // Y- face exposed
-                    if (z == 0 || getBlockId({x, y, z - 1}) != 10)
+                    if (bidZNeg != 10)
                         genQuadData(meshDataWater_, Quad::unit_z_neg, blockId, x, y, z); // Z- face exposed
                 }
                 else {
@@ -169,21 +192,21 @@ void Chunk::genMeshData() {
                     if (x != 0 && x != width - 1 &&
                         y != 0 && y != height - 1 &&
                         z != 0 && z != width - 1 &&
-                        isBlockOpaque(x + 1, y, z) && isBlockOpaque(x - 1, y, z) &&
-                        isBlockOpaque(x, y, z + 1) && isBlockOpaque(x, y, z - 1) &&
-                        isBlockOpaque(x, y + 1, z) && isBlockOpaque(x, y - 1, z))
+                        isBlockOpaque(bidXPos) && isBlockOpaque(bidXNeg) &&
+                        isBlockOpaque(bidYPos) && isBlockOpaque(bidYNeg) &&
+                        isBlockOpaque(bidZPos) && isBlockOpaque(bidZNeg))
                         continue; // Skip fully covered blocks
-                    if (x == width - 1 || !isBlockOpaque(x + 1, y, z))
+                    if (!isBlockOpaque(bidXPos))
                         genQuadData(meshDataOpaque_, Quad::unit_x_pos, blockId, x, y, z); // X+ face exposed
-                    if (y == height - 1 || !isBlockOpaque(x, y + 1, z))
+                    if (!isBlockOpaque(bidYPos))
                         genQuadData(meshDataOpaque_, Quad::unit_y_pos, blockId, x, y, z); // Y+ face exposed
-                    if (z == width - 1 || !isBlockOpaque(x, y, z + 1))
+                    if (!isBlockOpaque(bidZPos))
                         genQuadData(meshDataOpaque_, Quad::unit_z_pos, blockId, x, y, z); // Z+ face exposed
-                    if (x == 0 || !isBlockOpaque(x - 1, y, z))
+                    if (!isBlockOpaque(bidXNeg))
                         genQuadData(meshDataOpaque_, Quad::unit_x_neg, blockId, x, y, z); // X- face exposed
-                    if (y == 0 || !isBlockOpaque(x, y - 1, z))
+                    if (!isBlockOpaque(bidYNeg))
                         genQuadData(meshDataOpaque_, Quad::unit_y_neg, blockId, x, y, z); // Y- face exposed
-                    if (z == 0 || !isBlockOpaque(x, y, z - 1))
+                    if (!isBlockOpaque(bidZNeg))
                         genQuadData(meshDataOpaque_, Quad::unit_z_neg, blockId, x, y, z); // Z- face exposed}
                 }
             }
@@ -209,9 +232,13 @@ void Chunk::genQuadData(std::vector<Vertex>& meshData, const float* vertices, co
     }
 }
 
+bool Chunk::isBlockOpaque(const int blockId) {
+    return blockId > 0 && blockId != 10; // Not error code (neg values), not air, and not water
+}
+
 bool Chunk::isBlockOpaque(const int x, const int y, const int z) const {
     const uint8_t blockId = blocks_[x][y][z];
-    return blockId != 0 && blockId != 10; // Not air or water
+    return isBlockOpaque(blockId);
 }
 
 void Chunk::sendToGPUHelper(glm::uint* vao, glm::uint* vbo, const std::vector<Vertex>& meshData) {

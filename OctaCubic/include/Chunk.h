@@ -15,6 +15,8 @@ namespace OctaCubic
         }
     };
 
+    class World; // Forward declaration
+
     class Chunk {
     public:
         static constexpr int width = 16;
@@ -43,6 +45,11 @@ namespace OctaCubic
         static size_t getNumOfChunksInGPU();
         size_t getNumVertices() const;
 
+        World* getWorld() const;
+        void bindWorld(World* ptr_world);
+
+        glm::ivec3 getCoordWorld(const glm::ivec3 coordLocal) const;
+
     private:
         uint8_t blocks_[width][height][width]{};
         chunk_coord chunkCoord_;
@@ -51,6 +58,7 @@ namespace OctaCubic
         glm::uint vaoWater_ = 0;
         glm::uint vboWater_ = 0;
         size_t numVertices_ = 0;
+        World* ptr_world_ = nullptr;
 
         struct Vertex {
             float x, y, z;
@@ -69,6 +77,7 @@ namespace OctaCubic
         void genMeshData();
         void genQuadData(std::vector<Vertex>& meshData, const float* vertices, const uint8_t blockId, const int x,
                          const int y, const int z);
+        static bool isBlockOpaque(const int blockId);
         bool isBlockOpaque(const int x, const int y, const int z) const;
         void sendToGPUHelper(glm::uint* vao, glm::uint* vbo, const std::vector<Vertex>& meshData);
         void freeGPUHelper(glm::uint* vao, glm::uint* vbo);

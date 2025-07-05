@@ -166,9 +166,8 @@ int main() {
             const int aX = static_cast<int>(player_ptr->aimingAtBlockCoord.x);
             const int aY = static_cast<int>(player_ptr->aimingAtBlockCoord.y);
             const int aZ = static_cast<int>(player_ptr->aimingAtBlockCoord.z);
-            bool blockChanged = false;
             if (mouseButtonLeftPressDown) {
-                blockChanged = world.setBlockId(aX, aY, aZ, 0) >= 0;
+                world.setBlockId(glm::ivec3(aX, aY, aZ), 0);
             }
             if (mouseButtonRightPressDown) {
                 int pX = aX, pY = aY, pZ = aZ;
@@ -180,7 +179,7 @@ int main() {
                     case OctaCubic::zPos: pZ += 1; break;
                     case OctaCubic::zNeg: pZ -= 1; break;
                 }
-                blockChanged = world.setBlockId(pX, pY, pZ, 2) >= 0;
+                world.setBlockId(glm::ivec3(pX, pY, pZ), 2);
             }
         }
         /* End handling game logics */
@@ -460,6 +459,10 @@ void updateDebuggingGUI(const OctaCubic::Player* player_ptr_local) {
                 player_ptr_local->location.x,
                 player_ptr_local->location.y,
                 player_ptr_local->location.z);
+    const glm::ivec3 cc = OctaCubic::World::getCoordChunk(player_ptr_local->location);
+    const glm::ivec3 cl = OctaCubic::World::getCoordLocalToChunk(player_ptr_local->location);
+    ImGui::Text("Chunk: %d %d %d / %d %d %d",
+                cc.x, cc.y, cc.z, cl.x, cl.y, cl.z);
     ImGui::Text("Yaw: %.1f Pitch: %.1f",
                 player_ptr_local->yaw, player_ptr_local->pitch);
     ImGui::Text("Looking: %.1f %.1f %.1f",

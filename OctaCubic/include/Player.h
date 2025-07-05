@@ -34,7 +34,7 @@ namespace OctaCubic
         Player() = default;
 
         bool blockHasCollision(int x, int y, int z) const {
-            const int blockId = world_ptr->getBlockId(x, y, z);
+            const int blockId = world_ptr->getBlockId({x, y, z});
             return blockId > 0 && blockId != 10;
         }
 

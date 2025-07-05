@@ -28,21 +28,24 @@ namespace OctaCubic
         static void randomizeSeed();
         int generateSeed();
 
-        bool isOutOfBound(const int x, const int y, const int z) const;
-        int getBlockId(const int x, const int y, const int z);
-        int setBlockId(const int x, const int y, const int z, const uint8_t blockId);
+        bool isOutOfBound(const glm::ivec3& coordWorld) const;
+        int getBlockId(const glm::ivec3& coordWorld);
+        int setBlockId(const glm::ivec3& coordWorld, const uint8_t blockId);
 
         static bool isBlockOpaque(const int blockId);
-        bool isBlockOpaqueAtCoord(const int x, const int y, const int z);
+        bool isBlockOpaqueAtCoord(const glm::ivec3& coordWorld);
 
         static glm::ivec3 insideBlockCoordinates(const glm::vec3 pos);
 
         CoordinatesAndFace lineTraceToFace(const glm::vec3 start, const glm::vec3 dir, const float len);
 
         static glm::ivec3 getCoordLocalToChunk(const glm::ivec3 coordWorld);
+        static glm::ivec3 getCoordLocalToChunk(const glm::vec3 coordWorld);
         static glm::ivec3 getCoordChunk(const glm::ivec3 coordWorld);
+        static glm::ivec3 getCoordChunk(const glm::vec3 coordWorld);
 
         void smartRenderingPreprocess(const glm::ivec3 center, const int viewDistance);
+        void smartRenderingPreprocess(const glm::vec3 center, const int viewDistance);
         void renderInQueueOpaque();
         void renderInQueueWater();
 
